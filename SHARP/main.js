@@ -2,9 +2,9 @@ import express from 'express'
 import net from 'net'
 import cors from 'cors'
 import postgres from 'postgres'
-import dns from 'dns/promises'
-import { validateAuthToken } from './middleware/auth.js';
-import { createHash } from 'crypto';
+import { resolveSrv, verifySharpDomain } from './dns-utils.js'
+import { validateAuthToken } from './middleware/auth.js'
+import { createHash } from 'crypto'
 
 const SHARP_PORT = +process.env.SHARP_PORT || 5000
 const HTTP_PORT = +process.env.HTTP_PORT || SHARP_PORT + 1
@@ -97,10 +97,11 @@ const logEmail = (fa, fd, ta, td, s, b, ct = 'text/plain', hb = null, st = 'pend
 }
 
 const parseSharpAddress = a => {
-    const m = a.match(/^(.+)#([^:]+)(?::(\d+))?$/)
-    if (!m) throw new Error('Invalid SHARP address format')
-    return { username: m[1], domain: m[2], port: m[3] && +m[3] }
-}
+    const m = a.match(/^(.+)#([^:]+)(?::(\d+))?$/);
+    if (!m) throw new Error('Invalid SHARP address format');
+    return { username: m[1].toLowerCase(), domain: m[2].toLowerCase(), port: m[3] && +m[3] };
+};
+
 const sendJSON = (s, m) => s.writable && s.write(JSON.stringify(m) + '\n')
 const sendError = (s, e) => {
     sendJSON(s, { type: 'ERROR', message: e })
@@ -108,8 +109,14 @@ const sendError = (s, e) => {
 }
 
 async function handleSharpMessage(socket, raw, state) {
+    const MAX_MESSAGE_SIZE = 1 * 1024 * 1024;
+    if (raw.length > MAX_MESSAGE_SIZE) {
+        sendError(socket, 'Message too large');
+        return;
+    }
+
     try {
-        const cmd = JSON.parse(raw)
+        const cmd = JSON.parse(raw.replace(/\r$/, ''));
         switch (state.step) {
             case 'HELLO':
                 if (cmd.type !== 'HELLO') {
@@ -120,10 +127,16 @@ async function handleSharpMessage(socket, raw, state) {
                     sendError(socket, `Unsupported protocol version: ${cmd.protocol}`)
                     return
                 }
-                state.from = cmd.server_id
-                parseSharpAddress(state.from)
-                state.step = 'MAIL_TO'
-                sendJSON(socket, { type: 'OK', protocol: PROTOCOL_VERSION })
+
+                try {
+                    const parsedFrom = parseSharpAddress(cmd.server_id);
+                    await verifySharpDomain(parsedFrom.domain, socket.remoteAddress);
+                    state.from = cmd.server_id;
+                    state.step = 'MAIL_TO';
+                    sendJSON(socket, { type: 'OK', protocol: PROTOCOL_VERSION });
+                } catch (e) {
+                    sendError(socket, `Sender verification failed: ${e.message}`);
+                }
                 return
 
             case 'MAIL_TO':
@@ -252,125 +265,152 @@ function classifyEmail(subject, body, htmlBody) {
     return 'primary';
 }
 
-async function resolveSRV(domain) {
-    const recs = await dns.resolveSrv(`_sharp._tcp.${domain}`)
-    if (!recs.length) throw new Error('No SHARP server records found')
-    const srv = recs[0]
-    const hosts = await dns.resolve4(srv.name)
-    if (!hosts.length) throw new Error('Could not resolve SHARP server address')
-    return { host: hosts[0], port: srv.port }
-}
+async function validateRemoteServer(healthCheckHost, expectedDomain, httpPort) {
+    const timeout = 5000;
+    const healthPort = httpPort || HTTP_PORT;
 
-async function validateRemoteServer(domain) {
     for (const proto of ['https://', 'http://']) {
         try {
-            const res = await fetch(`${proto}${domain}/sharp/api/server/health`)
-            if (!res.ok) continue
-            const data = await res.json()
-            if (data.protocol === 'SHARP/1.1') {
-                return { domain: data.domain, protocol: proto, isValid: true }
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeout);
+
+            const url = `${proto}${healthCheckHost}:${healthPort}/sharp/api/server/health`;
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timer);
+
+            if (!res.ok) continue;
+            const data = await res.json();
+
+            if (data.protocol === PROTOCOL_VERSION && data.domain === expectedDomain) {
+                return { domain: data.domain, protocol: proto, isValid: true };
             }
         } catch { }
     }
-    return { isValid: false, error: 'Server not reachable or invalid' }
+    return { isValid: false, error: 'Server not reachable or invalid' };
 }
 
-async function sendEmailToRemoteServer(email) {
-    const rec = parseSharpAddress(email.to)
-    const server = rec.port
-        ? { host: rec.domain, port: rec.port }
-        : await (async () => {
-            const srv = await resolveSRV(rec.domain)
-            const v = await validateRemoteServer(rec.domain)
-            if (!v.isValid) {
-                throw new Error(
-                    `Invalid SHARP server config for domain ${rec.domain}: ${v.error}`
-                )
-            }
-            return { host: srv.host, port: srv.port }
-        })()
+async function sendEmailToRemoteServer(emailData) {
+    const recAddr = parseSharpAddress(emailData.to);
+    let target, domain, httpPort;
 
-    console.log(
-        `[sendEmailToRemoteServer] dialing TCP ${server.host}:${server.port}`
-    )
-    const client = new net.Socket()
+    if (recAddr.port) {
+        target = { host: recAddr.domain, port: recAddr.port };
+        domain = recAddr.domain;
+        httpPort = recAddr.port + 1;
+    } else {
+        const srv = await resolveSrv(recAddr.domain);
+        target = { host: srv.ip, port: srv.port };
+        domain = recAddr.domain;
+        httpPort = srv.httpPort;
+    }
+
+    const validation = await validateRemoteServer(domain, recAddr.domain, httpPort);
+    if (!validation.isValid) {
+        throw new Error(`Remote server validation failed for ${domain}: ${validation.error}`);
+    }
+
+    console.log(`[sendEmailToRemoteServer] dialing TCP ${target.host}:${target.port}`);
+
+    const client = net.createConnection({
+        host: target.host,
+        port: target.port
+    });
+
+    const steps = [
+        { type: 'HELLO', server_id: emailData.from, protocol: PROTOCOL_VERSION },
+        { type: 'MAIL_TO', address: emailData.to },
+        { type: 'DATA' },
+        {
+            type: 'EMAIL_CONTENT',
+            subject: emailData.subject,
+            body: emailData.body,
+            content_type: emailData.content_type,
+            html_body: emailData.html_body,
+            attachments: emailData.attachments || []
+        },
+        { type: 'END_DATA' }
+    ];
+
     return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-            client.destroy()
-            reject(new Error('Connection timed out'))
-        }, 10_000)
+        const responses = [];
+        let stepIndex = 0;
+        let timeout;
 
-        client.on('error', err => {
-            clearTimeout(timer)
-            reject(new Error(err.message))
-        })
+        const cleanup = () => {
+            clearTimeout(timeout);
+            client.removeAllListeners();
+            client.destroy();
+        };
 
-        client.connect({ host: server.host, port: server.port, family: 4 }, () => {
-            clearTimeout(timer)
-            const steps = [
-                { type: 'HELLO', server_id: email.from, protocol: PROTOCOL_VERSION },
-                { type: 'MAIL_TO', address: email.to },
-                { type: 'DATA' },
-                {
-                    type: 'EMAIL_CONTENT',
-                    subject: email.subject,
-                    body: email.body,
-                    content_type: email.content_type,
-                    html_body: email.html_body,
-                    attachments: email.attachments || []
-                },
-                { type: 'END_DATA' }
-            ]
-            let idx = 0
-            const responses = []
+        const handleResponse = (line) => {
+            console.log('[sendEmailToRemoteServer] recv', line.trim());
+            let response;
+            try {
+                response = JSON.parse(line);
+            } catch {
+                cleanup();
+                return reject(new Error('Invalid JSON from remote'));
+            }
 
-            client.on('data', chunk => {
-                const lines = chunk.toString().split('\n').filter(Boolean)
-                for (const line of lines) {
-                    console.log(
-                        '[sendEmailToRemoteServer] recv␊',
-                        line.trim()
-                    )
-                    let res
-                    try {
-                        res = JSON.parse(line)
-                    } catch {
-                        client.destroy()
-                        return reject(new Error('Invalid JSON from remote'))
-                    }
-                    responses.push(res)
-                    if (res.type === 'ERROR') {
-                        client.destroy()
-                        return reject(new Error(res.message))
-                    }
-                    if (res.type === 'OK') {
-                        if (res.message === 'Email processed') {
-                            client.end()
-                            return resolve({ success: true, responses })
-                        }
-                        if (idx < steps.length) {
-                            const msg = steps[idx++]
-                            console.log('[sendEmailToRemoteServer] send␊', JSON.stringify(msg))
-                            client.write(JSON.stringify(msg) + '\n')
-                            if (msg.type === 'EMAIL_CONTENT') {
-                                const endMsg = steps[idx++]
-                                console.log('[sendEmailToRemoteServer] send␊', JSON.stringify(endMsg))
-                                client.write(JSON.stringify(endMsg) + '\n')
-                            }
-                        }
-                    }
+            responses.push(response);
+
+            if (response.type === 'ERROR') {
+                cleanup();
+                return reject(new Error(response.message));
+            }
+
+            if (response.type === 'OK') {
+                if (response.message === 'Email processed') {
+                    cleanup();
+                    return resolve({ success: true, responses });
                 }
-            })
+                sendNextMessage();
+            }
+        };
 
-            // kick-off
-            const first = steps[idx++]
-            console.log(
-                '[sendEmailToRemoteServer] send␊',
-                JSON.stringify(first)
-            )
-            client.write(JSON.stringify(first) + '\n')
-        })
-    })
+        const sendMessage = (message) => {
+            console.log('[sendEmailToRemoteServer] send', JSON.stringify(message));
+            client.write(JSON.stringify(message) + '\n');
+        };
+
+        const sendNextMessage = () => {
+            if (stepIndex < steps.length) {
+                const message = steps[stepIndex++];
+                sendMessage(message);
+            } else {
+                cleanup();
+                reject(new Error('Unexpected state: No more messages to send.'));
+            }
+        };
+
+        client.on('connect', () => {
+            clearTimeout(timeout);
+            sendNextMessage();
+        });
+
+        client.on('data', (chunk) => {
+            const lines = chunk.toString().split('\n').filter(Boolean);
+            lines.forEach(handleResponse);
+        });
+
+        client.on('error', (err) => {
+            cleanup();
+            reject(new Error(`Socket error: ${err.message}`));
+        });
+
+        client.on('close', (hadError) => {
+            if (hadError) {
+                return;
+            }
+            cleanup();
+            reject(new Error('Connection closed unexpectedly'));
+        });
+
+        timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error('Connection timed out'));
+        }, 10000);
+    });
 }
 
 async function processScheduledEmails() {
@@ -546,7 +586,14 @@ app.post('/send', validateAuthToken, async (req, res) => {
                 message: 'You can only send emails from your own address.'
             });
         }
-        
+
+        if (fp.domain !== DOMAIN) {
+            return res.status(403).json({
+                success: false,
+                message: `This server does not relay mail for the domain ${fp.domain}`
+            });
+        }
+
         if (emailData.content_type === 'text/plain' && emailData.body) {
             const users = await sql`SELECT iq FROM users WHERE username = ${req.user.username}`;
             const userIQ = users[0]?.iq;
@@ -597,7 +644,7 @@ app.post('/send', validateAuthToken, async (req, res) => {
         }
 
         try {
-            await validateRemoteServer(tp.domain);
+            await validateRemoteServer(tp.domain, tp.domain);
         } catch (e) {
             await logEmail(from, fp.domain, to, tp.domain, subject, body, content_type, html_body, 'failed', null, reply_to_id, thread_id, expires_at, self_destruct);
             throw new Error(`Invalid destination: ${e.message}`);
@@ -688,22 +735,29 @@ app.get('/server/health', (_, res) =>
 
 net
     .createServer(socket => {
+        const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB total buffer limit
         const remoteAddress = `${socket.remoteAddress}:${socket.remotePort}`;
+        const state = { step: 'HELLO', buffer: '' };
 
-        console.log(`Connection established from ${remoteAddress}`);
-
-        const state = { step: 'HELLO', buffer: '' }
         socket.on('data', d => {
-            console.log(`Received data from ${remoteAddress}: ${d.toString().trim()}`);
-
-            state.buffer += d
-            let idx
-            while ((idx = state.buffer.indexOf('\n')) > -1) {
-                const line = state.buffer.slice(0, idx)
-                state.buffer = state.buffer.slice(idx + 1)
-                handleSharpMessage(socket, line, state)
+            if (state.buffer.length + d.length > MAX_BUFFER_SIZE) {
+                console.error(`Buffer overflow attempt from ${remoteAddress}`);
+                sendError(socket, 'Maximum message size exceeded');
+                socket.destroy();
+                return;
             }
-        })
+
+            state.buffer += d;
+            let idx;
+            while ((idx = state.buffer.indexOf('\n')) > -1) {
+                const line = state.buffer.slice(0, idx).replace(/\r$/, '');
+                state.buffer = state.buffer.slice(idx + 1);
+                if (line.trim().length > 0) {
+                    handleSharpMessage(socket, line, state);
+                }
+            }
+        });
+
         socket.on('error', (err) => {
             console.error(`Socket error from ${remoteAddress}:`, err);
         });
