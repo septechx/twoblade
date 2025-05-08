@@ -10,7 +10,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Send, Hammer } from 'lucide-svelte';
 	import { activeUsers } from '$lib/stores/users';
-	import { proxyUrl } from '$lib/utils/proxyUrl';
 
 	let { data } = $props();
 	let isAdmin = $state(data.isAdmin || false);
@@ -184,7 +183,7 @@
 			<div bind:this={messagesDiv}>
 				{#each messages as message}
 					<div
-						class="animate-message-appear hover:bg-muted/50 group mb-2 flex items-start gap-3 rounded-lg p-2 transition-colors"
+						class="animate-message-appear hover:bg-muted/50 group mb-2 flex items-start gap-3 rounded-lg p-2 transition-colors max-w-full"
 					>
 						<div
 							class={cn(
@@ -194,18 +193,18 @@
 						>
 							<span class="text-xs font-medium">{getInitials(message.fromUser.split('#')[0])}</span>
 						</div>
-						<div class="flex min-w-0 flex-1">
-							<div class="flex-1">
-								<div class="flex items-center gap-2">
-									<span class="text-sm font-medium">{message.fromUser}</span>
-									<span class="bg-primary/10 text-primary rounded px-2 py-0.5 text-xs">
+						<div class="flex min-w-0 flex-1 overflow-hidden">
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 flex-wrap">
+									<span class="text-sm font-medium break-all">{message.fromUser}</span>
+									<span class="bg-primary/10 text-primary rounded px-2 py-0.5 text-xs whitespace-nowrap">
 										{message.fromIQ} IQ
 									</span>
-									<span class="text-muted-foreground text-xs">
+									<span class="text-muted-foreground text-xs whitespace-nowrap">
 										{formatTime(message.timestamp)}
 									</span>
 								</div>
-								<p class="text-sm">{message.text}</p>
+								<p class="text-sm break-words overflow-hidden overflow-wrap-anywhere">{message.text}</p>
 							</div>
 							{#if isAdmin && !message.fromUser.includes($USER_DATA?.username ?? '')}
 								<Button
@@ -291,5 +290,11 @@
 		60% {
 			transform: translate3d(4px, 0, 0);
 		}
+	}
+
+	.overflow-wrap-anywhere {
+		overflow-wrap: anywhere;
+		word-break: break-word;
+		min-width: 0;
 	}
 </style>
