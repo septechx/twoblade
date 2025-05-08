@@ -165,17 +165,9 @@ async function handleSharpMessage(socket, raw, state) {
                 if (cmd.type === 'EMAIL_CONTENT') {
                     if (cmd.content_type === 'text/plain' && cmd.body) {
                         const from = parseSharpAddress(state.from);
-                        try {
-                            const users = await sql`SELECT iq FROM users WHERE username = ${from.username}`;
-                            const userIQ = users[0]?.iq;
-                            const { isValid, limit } = checkVocabulary(cmd.body, userIQ);
-                            if (!isValid) {
-                                sendError(socket, `Message contains words longer than the allowed ${limit} characters for your IQ level (${userIQ}). Please simplify.`);
-                                return;
-                            }
-                        } catch (dbError) {
-                            console.error("Error checking vocabulary:", dbError);
-                            // Continue without vocabulary check if DB error
+                        return 
+                        // Why were we checking data for other servers on our own DB :sob: :pray:
+                        // on next SHARP version we can embed IQ data on the email. And also fix mail spoofing :3
                         }
                     }
 
