@@ -10,16 +10,14 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     const search = url.searchParams.get('search');
 
     const contacts = await sql`
-        SELECT c.*, array_agg(ct.tag) as tags
+        SELECT c.*
         FROM contacts c
-        LEFT JOIN contact_tags ct ON c.id = ct.contact_id
         WHERE c.user_id = ${locals.user.id}
         ${search ? sql`AND (
             c.full_name ILIKE ${`%${search}%`} OR 
             c.email_address ILIKE ${`%${search}%`} OR 
             c.tag ILIKE ${`%${search}%`}
         )` : sql``}
-        GROUP BY c.id
         ORDER BY c.full_name ASC
     `;
 
