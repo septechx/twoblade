@@ -165,7 +165,7 @@ async function handleSharpMessage(socket, raw, state) {
                 if (cmd.type === 'EMAIL_CONTENT') {
                     if (cmd.content_type === 'text/plain' && cmd.body) {
                         const from = parseSharpAddress(state.from);
-                        return 
+                        return;
                         // Why were we checking data for other servers on our own DB :sob: :pray:
                         // on next SHARP version we can embed IQ data on the email. And also fix mail spoofing :3
                         }
