@@ -157,33 +157,26 @@ PRIVATE_B2_ENDPOINT=<s3-endpoint>  # Example: https://s3.<region>.amazonaws.com 
 
 Make sure to configure CORS rules on your bucket to allow uploads from your domain.
 
-## Database Initialization
+## Running the database
 
-1.  **Configure the `docker-compose.yml` file:**
-
-    *   Navigate to the `SHARP/database` directory.
-    *   Edit the `docker-compose.yml` file to set the `POSTGRES_PASSWORD` environment variable.  It is currently set to `REPLACE_ME`.
-
+1.  **Change the default database password:** (optional)
+    *   Open the `docker-compose.yml` file and change `REPLACE_ME` to something else.
         ```yaml
         version: '3.8'
 
         services:
           postgres_db:
-            ...
+            # ...
             environment:
               POSTGRES_USER: postgres
               POSTGRES_PASSWORD: REPLACE_ME  # Replace with your desired password
-            ...
+            # ...
         ```
+    *   Update your `.env` file with the new password.
 
 2.  **Start the database:**
     ```bash
-    docker compose up -d
-    ```
-
-3.  **Initialize the database schema:**
-    ```bash
-    docker exec -i postgres-db psql -U postgres < init.sql
+    docker compose up -d postgres
     ```
 
 # Other SHARP instances
