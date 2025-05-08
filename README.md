@@ -112,6 +112,7 @@ SHARP's HTML allows for reactive styling:
         ```
 
         Ensure that these URLs match the actual URLs of your API server, SHARP server, and WebSocket server.
+        The JWT secret should be long, random and similar to a password. Do not share it with anyone. You can generate one with `openssl rand -hex 64`.
 
 4.  **Run the development server:**
     ```bash
