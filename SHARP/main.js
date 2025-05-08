@@ -49,7 +49,7 @@ setInterval(async () => {
     }
 }, 10000);
 
-const PROTOCOL_VERSION = 'SHARP/1.0'
+const PROTOCOL_VERSION = 'SHARP/1.1'
 
 const KEYWORDS = {
     promotions: new Set([
@@ -267,7 +267,7 @@ async function validateRemoteServer(domain) {
             const res = await fetch(`${proto}${domain}/api/server/health`)
             if (!res.ok) continue
             const data = await res.json()
-            if (data.protocol === 'SHARP/1.0') {
+            if (data.protocol === 'SHARP/1.1') {
                 return { domain: data.domain, protocol: proto, isValid: true }
             }
         } catch { }
