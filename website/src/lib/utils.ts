@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+const USERNAME_REGEX = /^[a-zA-Z0-9_\-!$%&'*/?=^@.]+$/;
+
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
@@ -93,6 +95,17 @@ export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number
             }, delay);
         });
     };
+}
+
+export function validateUsername(username: string): boolean {
+    if (username.length > 20) {
+        return false;
+    }
+
+    if (!USERNAME_REGEX.test(username)) {
+        return false
+    }
+    return true;
 }
 
 // THIS IS LINKED TO ../../SHARP/main.js

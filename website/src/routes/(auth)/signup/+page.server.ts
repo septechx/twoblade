@@ -4,6 +4,7 @@ import type { Actions, ActionData } from './$types';
 import { sql } from '$lib/server/db';
 import { PUBLIC_DOMAIN } from '$env/static/public';
 import { getSessionScore, deleteSession_ } from '$lib/server/iq';
+import { validateUsername } from '$lib/utils';
 
 const SALT_ROUNDS = 10;
 
@@ -11,7 +12,7 @@ export const actions: Actions = {
     default: async ({ request }) => {
         try {
             const data = await request.formData();
-            const username = data.get('username')?.toString();
+            const username = data.get('username')?.toString()?.toLowerCase();
             const password = data.get('password')?.toString();
             const confirmPassword = data.get('confirmPassword')?.toString();
             const sessionId = data.get('sessionId')?.toString();
@@ -26,14 +27,13 @@ export const actions: Actions = {
             });
 
             if (!username) return fail(400, { error: 'Username is required' });
+            if (!validateUsername(username)) {
+                return fail(400, { error: 'Invalid username format', username });
+            }
             if (!password) return fail(400, { error: 'Password is required', username });
             if (!confirmPassword) return fail(400, { error: 'Password confirmation is required', username });
             if (!sessionId) return fail(400, { error: 'IQ test session ID is missing', username });
             if (!clientIqScore) return fail(400, { error: 'IQ score is missing', username });
-
-            if (username.length > 20 || !/^[a-zA-Z0-9_-]+$/.test(username)) {
-                return fail(400, { error: 'Invalid username format', username });
-            }
 
             if (password.length < 8) {
                 return fail(400, { error: 'Password must be at least 8 characters', username });

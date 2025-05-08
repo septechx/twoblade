@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import type { Actions } from './$types';
 import { sql } from '$lib/server/db';
 import { createAuthJWT, storeCode } from '$lib/server/jwt';
+import { validateUsername } from '$lib/utils';
 
 export type ActionData = {
     success?: boolean;
@@ -13,11 +14,15 @@ export type ActionData = {
 export const actions: Actions = {
     default: async ({ request, cookies, getClientAddress, request: { headers } }) => {
         const data = await request.formData();
-        const username = data.get('username');
+        const username = data.get('username')?.toString()?.toLowerCase();
         const password = data.get('password');
 
         if (!username || typeof username !== 'string' || !password || typeof password !== 'string') {
             return fail(400, { success: false, error: 'Invalid input.', username: username?.toString() });
+        }
+
+        if (!validateUsername(username)) {
+            return fail(400, { success: false, error: 'Invalid username format.', username });
         }
 
         try {

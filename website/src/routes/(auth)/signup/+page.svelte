@@ -9,7 +9,7 @@
 	import { AlertCircle, Check } from 'lucide-svelte';
 	import { Progress } from '$lib/components/ui/progress';
 	import DomainInput from '$lib/components/self/DomainInput.svelte';
-	import { debounce } from '$lib/utils';
+	import { debounce, validateUsername } from '$lib/utils';
 	import { PUBLIC_DOMAIN } from '$env/static/public';
 	import { page } from '$app/stores';
 
@@ -62,6 +62,12 @@
 			return false;
 		}
 
+		if (!validateUsername(value)) {
+			usernameError = 'Username contains invalid characters (or is over 20 characters)';
+			isUsernameValid = false;
+			return false;
+		}
+	
 		usernamePending = true;
 		const response = await fetch(`/api/username/check?username=${encodeURIComponent(value)}`);
 		const data = await response.json();
