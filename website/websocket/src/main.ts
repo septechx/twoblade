@@ -143,7 +143,8 @@ io.on('connection', (socket) => {
             return;
         }
 
-        if (!text?.trim()) return;
+        text = text.trim().slice(0, 500);
+        if (!text) return;
 
         if (checkHardcore(text)) {
             socket.emit('error', {
