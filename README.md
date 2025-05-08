@@ -34,12 +34,12 @@ SHARP's HTML allows for reactive styling:
 
 2.  **Install dependencies:**
     ```bash
-    npm install
+    bun install
     ```
 
 3.  **Run the initialization script:**
     ```bash
-    bash init.sh
+    bash database/init.sh
     ```
 
 4.  **Set up environment variables:**
@@ -47,7 +47,6 @@ SHARP's HTML allows for reactive styling:
     *   The `init.sh` script will create a `.env` file in the `SHARP` directory.
     *   It will prompt you for your domain name and set up the basic `.env` file.
     *   You may need to modify the `.env` file to match your actual configuration, especially the `DATABASE_URL`.
-
         ```
         DATABASE_URL=postgres://user:password@host:port/database
         SHARP_PORT=5000
@@ -57,7 +56,8 @@ SHARP's HTML allows for reactive styling:
 
 5.  **Run the server:**
     ```bash
-    npm run dev
+    cd ..
+    bun run .
     ```
 
 6.  **Add SRV records to Cloudflare (or your DNS provider):**
@@ -87,14 +87,12 @@ SHARP's HTML allows for reactive styling:
 3.  **Set up environment variables:**
 
     *   Create a `.env` file in the `website` directory.
-    *   Add the following variables, replacing the values with your actual configuration:
-
+    *   Add the following variable, replacing the values with your actual configuration:
         ```
         PUBLIC_DOMAIN=yourdomain.com
         ```
 
         **Additional variables:** You may also need to configure the following variables in your `.env` file:
-
         ```
         DATABASE_URL=postgres://<your-database>
         PUBLIC_DOMAIN=yourdomain.com
