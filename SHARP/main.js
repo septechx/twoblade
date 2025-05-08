@@ -204,7 +204,7 @@ async function handleSharpMessage(socket, raw, state) {
 async function processEmail({ from, to, subject, body, content_type, html_body, attachments = [] }) {
     const f = parseSharpAddress(from)
     const t = parseSharpAddress(to)
-    const emailResult = await logEmail(from, f.domain, to, t.domain, subject, body, content_type, html_body)
+    const emailResult = await logEmail(from, f.domain, to, t.domain, subject, body, content_type, html_body, 'sent')
 
     if (attachments.length > 0) {
         await sql`
