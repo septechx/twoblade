@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { getSession, setSession, deleteSession } from './redis';
 
 type Question = {
     question: string;
@@ -470,8 +471,6 @@ const mathQuestions: MathQuestionGenerator[] = [
     }
 ];
 
-const sessions = new Map<string, TestSession>();
-
 const MAX_QUESTIONS_PER_SECTION = 5;
 
 function generateRandomIndexes(max: number, count: number): number[] {
@@ -493,9 +492,9 @@ function getRandomCharacters(targetCharacter: typeof characters[0], count: numbe
     return shuffleArray(availableCharacters).slice(0, count);
 }
 
-export function createIQSession(): string {
+export async function createIQSession(): Promise<string> {
     const sessionId = randomUUID();
-    sessions.set(sessionId, {
+    const session: TestSession = {
         id: sessionId,
         currentSection: 'brainrot',
         questionIndex: 0,
@@ -505,21 +504,23 @@ export function createIQSession(): string {
         brainrotQuestions: generateRandomIndexes(characters.length, 5),
         mathQuestions: generateRandomIndexes(mathQuestions.length, 5),
         literacyQuestions: generateRandomIndexes(literacyQuestions.length, 5),
-        currentCorrectIndex: null // Initialize
-    });
+        currentCorrectIndex: null
+    };
+
+    await setSession(session);
     return sessionId;
 }
 
-export function getSessionScore(sessionId: string): number | undefined {
-    const session = sessions.get(sessionId);
+export async function getSessionScore(sessionId: string): Promise<number | undefined> {
+    const session = await getSession(sessionId);
     if (session?.completed) {
         return session.score;
     }
     return undefined;
 }
 
-export function getCurrentQuestion(sessionId: string): { question: Question } | { error: string } {
-    const session = sessions.get(sessionId);
+export async function getCurrentQuestion(sessionId: string): Promise<{ question: Question } | { error: string }> {
+    const session = await getSession(sessionId);
     if (!session) {
         return { error: 'Invalid session' };
     }
@@ -530,18 +531,20 @@ export function getCurrentQuestion(sessionId: string): { question: Question } | 
     const question = generateQuestion(session.currentSection, session.questionIndex, session);
     session.currentCorrectIndex = question.correctIndex;
 
+    await setSession(session);
+
     return {
         question: question
     };
 }
 
-export function submitAnswer(sessionId: string, answer: number): {
+export async function submitAnswer(sessionId: string, answer: number): Promise<{
     completed: boolean;
     nextSection?: string;
     questionIndex: number;
     score?: number;
-} | { error: string } {
-    const session = sessions.get(sessionId);
+} | { error: string }> {
+    const session = await getSession(sessionId);
     if (!session) {
         return { error: 'Invalid session' };
     }
@@ -554,13 +557,13 @@ export function submitAnswer(sessionId: string, answer: number): {
 
     const expectedCorrectIndex = session.currentCorrectIndex;
     const isCorrect = expectedCorrectIndex === answer;
-    
+
     session.answers.push(answer);
     if (isCorrect) {
         session.correctAnswers++;
     }
-    
-    session.currentCorrectIndex = null; 
+
+    session.currentCorrectIndex = null;
     session.questionIndex++;
 
     if (session.questionIndex >= MAX_QUESTIONS_PER_SECTION) {
@@ -579,6 +582,8 @@ export function submitAnswer(sessionId: string, answer: number): {
         }
     }
 
+    await setSession(session);
+
     return {
         completed: session.completed,
         nextSection: session.currentSection,
@@ -587,8 +592,8 @@ export function submitAnswer(sessionId: string, answer: number): {
     };
 }
 
-export function deleteSession(sessionId: string): boolean {
-    return sessions.delete(sessionId);
+export async function deleteSession_(sessionId: string): Promise<boolean> {
+    return await deleteSession(sessionId);
 }
 
 function calculateScore(correctAnswers: number): number {
@@ -621,7 +626,7 @@ function generateLiteracyQuestion(index: number): Question {
     const question = literacyQuestions[index % literacyQuestions.length];
     const originalCorrect = question.options[question.correctIndex];
     const shuffledOptions = shuffleArray([...question.options]);
-    
+
     return {
         question: question.question,
         options: shuffledOptions,
@@ -643,21 +648,5 @@ function generateQuestion(
             return generateLiteracyQuestion(session.literacyQuestions[index]);
     }
 }
-
-export function cleanupSessions(maxAge: number): void {
-    const now = Date.now();
-    const threshold = now - maxAge;
-
-    sessions.forEach((session, id) => {
-        const timestamp = Date.parse(id.slice(0, 13));
-        if (session.completed && timestamp < threshold) {
-            sessions.delete(id);
-        }
-    });
-}
-
-setInterval(() => {
-    cleanupSessions(1000 * 60 * 60);
-}, 1000 * 60 * 60);
 
 export { type Question, type TestSession };

@@ -109,6 +109,7 @@ SHARP's HTML allows for reactive styling:
 
         TEST_AUTH_TOKEN=<a-cookie-from-the-website-OPTIONAL-used-for-/test>
 
+        REDIS_URL=
         ```
 
         Ensure that these URLs match the actual URLs of your API server, SHARP server, and WebSocket server.

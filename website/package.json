@@ -49,10 +49,12 @@
 		"bcryptjs": "^2.4.3",
 		"dompurify": "^3.2.5",
 		"dotenv": "^16.5.0",
+		"express": "^5.1.0",
 		"jose": "^6.0.10",
 		"lucide-svelte": "^0.503.0",
 		"nanoid": "^5.1.5",
 		"postgres": "^3.4.5",
+		"redis": "^5.0.1",
 		"socket.io": "^4.8.1",
 		"socket.io-client": "^4.8.1"
 	},

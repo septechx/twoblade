@@ -29,7 +29,7 @@ FROM base-node AS build-websocket
 WORKDIR /app/websocket
 
 COPY website/websocket/package.json ./
-COPY website/websocket/tsconfig.json ./ 
+COPY website/websocket/tsconfig.json ./
 COPY website/websocket/src ./src/
 
 RUN npm install
@@ -43,9 +43,11 @@ COPY --from=build-main --chown=node:node /app/build ./build
 COPY --from=build-main --chown=node:node /app/node_modules ./node_modules
 COPY --from=build-main --chown=node:node /app/package.json .
 
+COPY --from=build-main --chown=node:node /app/cluster-server.js ./
+
 USER node
 EXPOSE 3000
-CMD ["node", "build/index.js"]
+CMD ["node", "cluster-server.js"]
 
 FROM base-node AS production-websocket
 WORKDIR /app/websocket

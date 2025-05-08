@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import type { Actions, ActionData } from './$types';
 import { sql } from '$lib/server/db';
 import { PUBLIC_DOMAIN } from '$env/static/public';
-import { getSessionScore, deleteSession } from '$lib/server/iq';
+import { getSessionScore, deleteSession_ } from '$lib/server/iq';
 
 const SALT_ROUNDS = 10;
 
@@ -17,7 +17,13 @@ export const actions: Actions = {
             const sessionId = data.get('sessionId')?.toString();
             const clientIqScore = data.get('iqScore')?.toString();
 
-            console.log('Received signup data:', { username, password: !!password, confirmPassword: !!confirmPassword, sessionId, clientIqScore });
+            console.log('Received signup data:', { 
+                username, 
+                password: !!password, 
+                confirmPassword: !!confirmPassword, 
+                sessionId, 
+                clientIqScore 
+            });
 
             if (!username) return fail(400, { error: 'Username is required' });
             if (!password) return fail(400, { error: 'Password is required', username });
@@ -42,7 +48,7 @@ export const actions: Actions = {
                 return fail(400, { error: 'Invalid IQ score format', username });
             }
 
-            const serverIqScore = getSessionScore(sessionId);
+            const serverIqScore = await getSessionScore(sessionId);
             if (serverIqScore === undefined) {
                 return fail(400, { error: 'IQ test session not found or incomplete', username });
             }
@@ -65,7 +71,7 @@ export const actions: Actions = {
                 VALUES (${username}, ${passwordHash}, ${PUBLIC_DOMAIN}, ${serverIqScore})
             `;
 
-            deleteSession(sessionId);
+            await deleteSession_(sessionId);
 
             return { success: true };
 

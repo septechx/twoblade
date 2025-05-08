@@ -3,7 +3,7 @@ import type { RequestEvent } from './$types';
 import { createIQSession, getCurrentQuestion, submitAnswer } from '$lib/server/iq';
 
 export async function POST({ request }: RequestEvent) {
-    const sessionId = createIQSession();
+    const sessionId = await createIQSession();
     return json({ sessionId });
 }
 
@@ -13,7 +13,7 @@ export async function GET({ url }: RequestEvent) {
         throw error(400, 'Session ID is required');
     }
 
-    const result = getCurrentQuestion(sessionId);
+    const result = await getCurrentQuestion(sessionId);
     if ('error' in result) {
         throw error(404, result.error);
     }
@@ -28,7 +28,7 @@ export async function PUT({ request }: RequestEvent) {
         throw error(400, 'Invalid input');
     }
 
-    const result = submitAnswer(sessionId, answer);
+    const result = await submitAnswer(sessionId, answer);
     if ('error' in result) {
         throw error(400, result.error);
     }
