@@ -98,7 +98,7 @@ SHARP's HTML allows for reactive styling:
         ```
         DATABASE_URL=postgres://<your-database>
         PUBLIC_DOMAIN=yourdomain.com
-        PUBLIC_WEBSOCKET_URL=ws://localhost:3001
+        PUBLIC_WEBSOCKET_URL=https://localhost:3001
 
         JWT_SECRET=
 
