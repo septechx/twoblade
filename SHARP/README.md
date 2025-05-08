@@ -4,7 +4,7 @@ This server implements the SHARP protocol, a decentralized email system that use
 
 ## Protocol Details
 
-* **Version:** SHARP/1.0
+* **Version:** SHARP/1.1
 * **Transport:** TCP with JSON messages
 * **Default Ports:** 5000 (SHARP), 5001 (HTTP API)
 
@@ -13,9 +13,9 @@ This server implements the SHARP protocol, a decentralized email system that use
 1. **Connection Establishment**
    ```json
    // Client -> Server
-   { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.0" }
+   { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.1" }
    // Server -> Client
-   { "type": "OK", "protocol": "SHARP/1.0" }
+   { "type": "OK", "protocol": "SHARP/1.1" }
    ```
 
 2. **Mail Delivery**
@@ -176,7 +176,7 @@ SHARP uses addresses in the format `user#domain.com`.
 Besides configuration available through the `.env` file, some core protocol and behavior settings are defined as constants in `SHARP/main.js`:
 
 ```javascript
-const PROTOCOL_VERSION = 'SHARP/1.0'
+const PROTOCOL_VERSION = 'SHARP/1.1'
 
 const KEYWORDS = {
     promotions: new Set([/* ...keywords... */]),
