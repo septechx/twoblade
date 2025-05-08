@@ -1,10 +1,10 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { PRIVATE_B2_KEY_ID, PRIVATE_B2_APP_KEY, PRIVATE_B2_BUCKET, PRIVATE_B2_REGION } from '$env/static/private';
+import { PRIVATE_B2_KEY_ID, PRIVATE_B2_APP_KEY, PRIVATE_B2_BUCKET, PRIVATE_B2_REGION, PRIVATE_B2_ENDPOINT } from '$env/static/private';
 
 const s3Client = new S3Client({
-    endpoint: `https://s3.${PRIVATE_B2_REGION}.backblazeb2.com`,
+    endpoint: PRIVATE_B2_ENDPOINT,
     region: PRIVATE_B2_REGION,
     credentials: {
         accessKeyId: PRIVATE_B2_KEY_ID,

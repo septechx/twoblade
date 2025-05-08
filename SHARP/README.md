@@ -87,7 +87,7 @@ Messages are automatically classified into categories:
 2.  **Install dependencies:**
 
     ```bash
-    npm install
+    bun install
     ```
 
 3.  **Run the initialization script:**

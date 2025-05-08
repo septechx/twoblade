@@ -106,6 +106,7 @@ SHARP's HTML allows for reactive styling:
         PRIVATE_B2_APP_KEY=
         PRIVATE_B2_BUCKET=
         PRIVATE_B2_REGION=
+        PRIVATE_B2_ENDPOINT=https://s3.<region>.backblazeb2.com
 
         TEST_AUTH_TOKEN=<a-cookie-from-the-website-OPTIONAL-used-for-/test>
 
@@ -120,12 +121,14 @@ SHARP's HTML allows for reactive styling:
     ```
 
 ## Attachments Setup
-You will need a [Backblaze](https://www.backblaze.com/) account.
+You will need a [Backblaze](https://www.backblaze.com/) account or any S3-compatible storage provider.
 
+### Using Backblaze B2
 ```bash
 wget https://github.com/Backblaze/B2_Command_Line_Tool/releases/latest/download/b2-linux -O "b2"
 chmod +x b2
 ./b2 account authorize
+
 ./b2 bucket update --cors-rules '[
   {
     "corsRuleName": "allowS3PutFromLocalhost",
@@ -141,6 +144,18 @@ chmod +x b2
 ]' REPLACE_ME_WITH_BUCKET_NAME
 ```
 - Note to replace `REPLACE_ME_WITH_PUBLIC_DOMAIN` and `REPLACE_ME_WITH_BUCKET_NAME`
+
+### Using other S3-Compatible storage
+You can use any S3-compatible storage by setting these environment variables:
+```
+PRIVATE_B2_KEY_ID=<access-key>
+PRIVATE_B2_APP_KEY=<secret-key>
+PRIVATE_B2_BUCKET=<bucket-name>
+PRIVATE_B2_REGION=<region>
+PRIVATE_B2_ENDPOINT=<s3-endpoint>  # Example: https://s3.<region>.amazonaws.com for AWS
+```
+
+Make sure to configure CORS rules on your bucket to allow uploads from your domain.
 
 ## Database Initialization
 
