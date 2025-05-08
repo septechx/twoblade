@@ -264,7 +264,7 @@ async function resolveSRV(domain) {
 async function validateRemoteServer(domain) {
     for (const proto of ['https://', 'http://']) {
         try {
-            const res = await fetch(`${proto}${domain}/api/server/health`)
+            const res = await fetch(`${proto}${domain}/sharp/api/server/health`)
             if (!res.ok) continue
             const data = await res.json()
             if (data.protocol === 'SHARP/1.0') {
