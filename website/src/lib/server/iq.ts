@@ -520,19 +520,31 @@ export async function getSessionScore(sessionId: string): Promise<number | undef
 }
 
 export async function getCurrentQuestion(sessionId: string): Promise<{ question: Question } | { error: string }> {
+    console.time(`getCurrentQuestion_total_${sessionId}`);
+    console.time(`getSession_${sessionId}`);
     const session = await getSession(sessionId);
+    console.timeEnd(`getSession_${sessionId}`);
+
     if (!session) {
+        console.timeEnd(`getCurrentQuestion_total_${sessionId}`);
         return { error: 'Invalid session' };
     }
     if (session.completed) {
+        console.timeEnd(`getCurrentQuestion_total_${sessionId}`);
         return { error: 'Session already completed' };
     }
 
+    console.time(`generateQuestion_${sessionId}`);
     const question = generateQuestion(session.currentSection, session.questionIndex, session);
+    console.timeEnd(`generateQuestion_${sessionId}`);
+    
     session.currentCorrectIndex = question.correctIndex;
 
+    console.time(`setSession_${sessionId}`);
     await setSession(session);
+    console.timeEnd(`setSession_${sessionId}`);
 
+    console.timeEnd(`getCurrentQuestion_total_${sessionId}`);
     return {
         question: question
     };
