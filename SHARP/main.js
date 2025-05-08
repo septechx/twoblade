@@ -534,6 +534,18 @@ app.post('/send', validateAuthToken, async (req, res) => {
     let id;
     try {
         const { hashcash, ...emailData } = req.body;
+        const { from, to, subject, body, content_type = 'text/plain',
+            html_body, scheduled_at, reply_to_id, thread_id,
+            attachments = [], expires_at = null, self_destruct = false } = emailData;
+
+        const fp = parseSharpAddress(from);
+
+        if (fp.username !== req.user.username || fp.domain !== req.user.domain) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only send emails from your own address.'
+            });
+        }
         
         if (emailData.content_type === 'text/plain' && emailData.body) {
             const users = await sql`SELECT iq FROM users WHERE username = ${req.user.username}`;
@@ -559,12 +571,8 @@ app.post('/send', validateAuthToken, async (req, res) => {
         let status = spamScore > 0 ? 'spam' : 'pending';
         if (emailData.scheduled_at) status = 'scheduled';
 
-        const { from, to, subject, body, content_type = 'text/plain',
-            html_body, scheduled_at, reply_to_id, thread_id,
-            attachments = [], expires_at = null, self_destruct = false } = emailData;
-
         const attachmentKeys = attachments.map(att => att.key).filter(Boolean);
-        const fp = parseSharpAddress(from), tp = parseSharpAddress(to);
+        const tp = parseSharpAddress(to);
 
         if (scheduled_at) {
             logEntry = await logEmail(from, fp.domain, to, tp.domain, subject, body, content_type, html_body, status, scheduled_at, reply_to_id, thread_id, expires_at, self_destruct);
@@ -586,13 +594,6 @@ app.post('/send', validateAuthToken, async (req, res) => {
                 await sql`UPDATE attachments SET email_id = ${id}, status = ${finalStatus} WHERE key = ANY(${attachmentKeys})`;
             }
             return res.json({ success: true, id });
-        }
-
-        if (fp.username !== req.user.username || fp.domain !== req.user.domain) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only send emails from your own address'
-            });
         }
 
         try {
