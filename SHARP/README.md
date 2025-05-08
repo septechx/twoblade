@@ -4,7 +4,7 @@ This server implements the SHARP protocol, a decentralized email system that use
 
 ## Protocol Details
 
-* **Version:** SHARP/1.1
+* **Version:** SHARP/1.2
 * **Transport:** TCP with JSON messages
 * **Default Ports:** 5000 (SHARP), 5001 (HTTP API)
 
@@ -13,9 +13,9 @@ This server implements the SHARP protocol, a decentralized email system that use
 1. **Connection Establishment**
    ```json
    // Client -> Server
-   { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.1" }
+   { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.2" }
    // Server -> Client
-   { "type": "OK", "protocol": "SHARP/1.1" }
+   { "type": "OK", "protocol": "SHARP/1.2" }
    ```
 
 2. **Mail Delivery**

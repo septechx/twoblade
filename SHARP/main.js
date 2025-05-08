@@ -49,7 +49,7 @@ setInterval(async () => {
     }
 }, 10000);
 
-const PROTOCOL_VERSION = 'SHARP/1.1'
+const PROTOCOL_VERSION = 'SHARP/1.2'
 
 const KEYWORDS = {
     promotions: new Set([
@@ -176,12 +176,6 @@ async function handleSharpMessage(socket, raw, state) {
 
             case 'RECEIVING_DATA':
                 if (cmd.type === 'EMAIL_CONTENT') {
-                    if (cmd.content_type === 'text/plain' && cmd.body) {
-                        const from = parseSharpAddress(state.from);
-                        return;
-                        }
-                    }
-
                     state.subject = cmd.subject;
                     state.body = cmd.body;
                     state.content_type = cmd.content_type || 'text/plain';
