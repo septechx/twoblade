@@ -93,6 +93,7 @@ Messages are automatically classified into categories:
 3.  **Run the initialization script:**
 
     ```bash
+    cd database
     bash init.sh
     ```
 
@@ -119,7 +120,6 @@ Messages are automatically classified into categories:
 5.  **Start the database:**
 
     ```bash
-    cd SHARP/database
     docker compose up -d
     ```
 
@@ -145,6 +145,11 @@ Messages are automatically classified into categories:
 
     ```bash
     node main.js
+
+    # or, recommended:
+    cd ../website
+    chmod +x build.sh
+    ./build.sh
     ```
 
 9.  **Add SRV records to Cloudflare (or your DNS provider):**
