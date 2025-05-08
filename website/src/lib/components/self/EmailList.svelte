@@ -24,6 +24,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { classificationColors } from '$lib/utils/classification-colors';
 	import { formatEmailDate } from '$lib/utils/format-date';
+	import { onMount } from 'svelte';
 
 	let props = $props<{
 		emails: Email[];
@@ -179,11 +180,34 @@
 		forums: MessagesSquare,
 		updates: Bell
 	};
+
+	function truncateText(text: string, maxLength: number) {
+		if (!text) return '';
+		return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+	}
+
+	let isMobile = $state(false);
+	let subjectMaxLength = $state(35);
+	let bodyMaxLength = $state(50);
+
+	function updateScreenSizes() {
+		isMobile = window.innerWidth < 768;
+		subjectMaxLength = isMobile ? 25 : 50;
+		bodyMaxLength = isMobile ? 35 : 70;
+	}
+
+	onMount(() => {
+		updateScreenSizes();
+		window.addEventListener('resize', updateScreenSizes);
+		return () => window.removeEventListener('resize', updateScreenSizes);
+	});
 </script>
 
 <div class="h-[calc(100vh-6rem)] w-full">
 	{#if selectedEmails.size > 0}
-		<div class="bg-background/95 supports-[backdrop-filter]:bg-background/60 flex items-center gap-2 border-b p-2 backdrop-blur">
+		<div
+			class="bg-background/95 supports-[backdrop-filter]:bg-background/60 flex items-center gap-2 border-b p-2 backdrop-blur"
+		>
 			<span class="text-muted-foreground text-sm">
 				{selectedEmails.size} selected
 			</span>
@@ -195,7 +219,11 @@
 		</div>
 	{/if}
 	<Resizable.PaneGroup direction="horizontal" class="relative">
-		<Resizable.Pane minSize={25} maxSize={80} class="md:relative absolute inset-0 z-10 md:z-0 {selectedEmail ? 'hidden md:block' : 'block'}">
+		<Resizable.Pane
+			minSize={25}
+			maxSize={80}
+			class="absolute inset-0 z-10 md:relative md:z-0 {selectedEmail ? 'hidden md:block' : 'block'}"
+		>
 			<ScrollArea class="h-full w-full">
 				<div class="flex flex-col gap-1 px-2 py-2 md:px-6 md:py-4">
 					{#if emails.length === 0}
@@ -206,7 +234,7 @@
 						{#each emails as email (email.id)}
 							<button
 								type="button"
-								class={`hover:bg-accent hover:text-accent-foreground flex flex-col items-start gap-1 md:gap-2 rounded-lg p-2 md:p-3 text-left text-xs md:text-sm transition-colors ${
+								class={`hover:bg-accent hover:text-accent-foreground flex flex-col items-start gap-1 rounded-lg p-2 text-left text-xs transition-colors md:gap-2 md:p-3 md:text-sm ${
 									selectedEmails.has(email.id) ? 'bg-accent text-accent-foreground' : ''
 								} ${selectedEmail?.id === email.id ? 'bg-accent text-accent-foreground' : ''}`}
 								aria-label={`Email from ${email.from_address} with subject ${email.subject}`}
@@ -270,14 +298,20 @@
 											{/if}
 										</span>
 									</div>
-									<div class="ml-2 md:ml-3 flex min-w-0 flex-1 items-center">
+									<div class="ml-2 flex min-w-0 flex-1 items-center md:ml-3">
 										<!-- Mobile Layout -->
-										<div class="md:hidden flex flex-col w-full">
-											<div class="flex items-center justify-between gap-2">
-												<span class="flex-1 truncate {isReceiver(email) && !email.read_at ? 'font-bold' : ''}">
-													{email.subject}
-												</span>
-												<div class="flex items-center gap-1">
+										<div class="flex w-full min-w-0 flex-col md:hidden">
+											<div class="flex w-full min-w-0 items-center">
+												<div class="mr-2 min-w-0 max-w-[60%] flex-1">
+													<span
+														class="block truncate {isReceiver(email) && !email.read_at
+															? 'font-bold'
+															: ''}"
+													>
+														{truncateText(email.subject, subjectMaxLength)}
+													</span>
+												</div>
+												<div class="flex flex-shrink-0 items-center gap-1">
 													<div class="inline-flex gap-1">
 														<Tooltip.Root>
 															<Tooltip.Trigger
@@ -328,13 +362,20 @@
 													</span>
 												</div>
 											</div>
-											<span class="text-muted-foreground block truncate text-xs">{email.body}</span>
+											<span class="text-muted-foreground block text-xs"
+												>{truncateText(email.body, bodyMaxLength)}</span
+											>
 										</div>
 
 										<!-- Desktop Layout -->
-										<div class="hidden md:flex min-w-0 flex-1 items-center">
-											<div class="flex items-center gap-2">
-												<span class="max-w-[200px] truncate font-medium {isReceiver(email) && !email.read_at ? 'font-bold' : ''}">
+										<div class="hidden min-w-0 flex-1 items-center gap-2 md:flex">
+											<div class="flex max-w-[200px] flex-shrink-0 items-center gap-2">
+												<span
+													class="max-w-[200px] truncate font-medium {isReceiver(email) &&
+													!email.read_at
+														? 'font-bold'
+														: ''}"
+												>
 													{showRecipient ? email.to_address : email.from_address}
 												</span>
 
@@ -346,7 +387,8 @@
 														{classificationColors[email.classification as Classification].text}
 														{classificationColors[email.classification as Classification].bgStrong}"
 													>
-														{@const Icon = classificationIcons[email.classification as Classification]}
+														{@const Icon =
+															classificationIcons[email.classification as Classification]}
 														<Icon class="h-3.5 w-3.5" />
 													</Tooltip.Trigger>
 													<Tooltip.Content>
@@ -355,12 +397,20 @@
 												</Tooltip.Root>
 											</div>
 
-											<div class="ml-2 flex-1 truncate">
-												<span class={isReceiver(email) && !email.read_at ? 'font-bold' : ''}>{email.subject}</span>
-												<span class="text-muted-foreground">- {email.body}</span>
+											<div class="min-w-0 flex-1">
+												<div class="flex min-w-0 items-center gap-1">
+													<span
+														class="min-w-0 {isReceiver(email) && !email.read_at ? 'font-bold' : ''}"
+													>
+														{truncateText(email.subject, subjectMaxLength)}
+													</span>
+													<span class="text-muted-foreground min-w-0"
+														>- {truncateText(email.body, bodyMaxLength)}</span
+													>
+												</div>
 											</div>
 
-											<div class="flex items-center gap-2 ml-2">
+											<div class="flex flex-shrink-0 items-center gap-2">
 												<div class="inline-flex gap-2">
 													{#if email.self_destruct}
 														<Tooltip.Root>
@@ -441,7 +491,7 @@
 								{/if}
 							</button>
 							{#if email.id !== emails[emails.length - 1].id}
-								<div class="bg-border/50 mx-2 md:mx-4 h-px"></div>
+								<div class="bg-border/50 mx-2 h-px md:mx-4"></div>
 							{/if}
 						{/each}
 					{/if}
@@ -451,7 +501,7 @@
 
 		{#if selectedEmail}
 			<Resizable.Handle withHandle class="hidden md:flex" />
-			<Resizable.Pane class="md:relative fixed inset-0 z-20 md:z-0 bg-background">
+			<Resizable.Pane class="bg-background fixed inset-0 z-20 md:relative md:z-0">
 				<div class="h-full md:border-l">
 					<EmailViewer email={selectedEmail} onClose={() => (selectedEmail = null)} />
 				</div>
