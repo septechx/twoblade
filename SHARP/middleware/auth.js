@@ -28,9 +28,8 @@ async function verifyTurnstile(token) {
 export async function validateAuthToken(req, res, next) {
     const token = req.headers['authorization']?.split(' ')[1];
     const turnstileToken = req.body?.turnstileToken;
-    console.log('Turnstile token:', turnstileToken);
+
     req.turnstileVerified = await verifyTurnstile(turnstileToken);
-    console.log('Turnstile verified:', req.turnstileVerified);
 
     if (!token) {
         return res.status(401).json({
