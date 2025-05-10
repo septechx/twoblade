@@ -21,7 +21,7 @@
 	import type { Config } from 'dompurify';
 	import { mode } from 'mode-watcher';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { PUBLIC_DOMAIN } from '$env/static/public';
+	import { PUBLIC_DOMAIN, PUBLIC_TURNSTILE_SITE_KEY } from '$env/static/public';
 	import { getInitials, getRandomColor } from '$lib/utils';
 	import Attachment from './Attachment.svelte';
 	import ImagePreview from './ImagePreview.svelte';
@@ -34,6 +34,7 @@
 	import { debounce, checkVocabulary } from '$lib/utils';
 	import { proxyUrl } from '$lib/utils/proxyUrl';
 	import { formatThreadDate } from '$lib/utils/format-date';
+	import { Turnstile } from 'svelte-turnstile';
 
 	function isImageAttachment(type: string): boolean {
 		return IMAGE_TYPES.includes(type as ImageType);
@@ -62,6 +63,8 @@
 	let attachmentComponent: Attachment | null = $state(null);
 	let isSending = $state(false);
 	let vocabularyError = $state('');
+	let turnstileToken = $state('');
+	let turnstileReset = $state<() => void>();
 
 	const sanitizeConfig: Config = {
 		ALLOWED_TAGS: [...ALLOWED_HTML_TAGS],
@@ -214,9 +217,29 @@
 		if (!replyText.trim() || !email || !replyRecipient || !$USER_DATA || isSending) return;
 
 		vocabularyError = '';
-
 		isSending = true;
-		const sendToastId = toast.loading('Sending email...');
+		const sendToastId = toast.loading('Verifying your message...');
+
+		if (!turnstileToken) {
+			toast.loading('Completing security check...', { id: sendToastId });
+			
+			try {
+				await new Promise((resolve, reject) => {
+					const timeout = setTimeout(() => reject(new Error('Verification timeout')), 30000);
+					const checkToken = setInterval(() => {
+						if (turnstileToken) {
+							clearTimeout(timeout);
+							clearInterval(checkToken);
+							resolve(true);
+						}
+					}, 100);
+				});
+			} catch (error) {
+				toast.error('Security check failed, please try again', { id: sendToastId });
+				isSending = false;
+				return;
+			}
+		}
 
 		try {
 			let finalAttachments: Array<{ key: string; filename: string; size: number; type: string }> =
@@ -253,7 +276,8 @@
 				reply_to_id: email.id,
 				thread_id: email.thread_id || email.id,
 				attachments: finalAttachments,
-				hashcash
+				hashcash,
+				turnstileToken
 			};
 
 			const response = await fetch('/api/emails/new', {
@@ -487,7 +511,19 @@
 	onDestroy(() => {
 		hashcashPool.cleanup();
 	});
+
+	function onTurnstileVerified(e: CustomEvent<{ token: string }>) {
+		turnstileToken = e.detail.token;
+	}
 </script>
+
+<Turnstile
+    siteKey={PUBLIC_TURNSTILE_SITE_KEY}
+    theme={mode.current}
+    size="invisible"
+    on:callback={onTurnstileVerified}
+    bind:reset={turnstileReset}
+/>
 
 {#if email}
 	<div class="flex h-full flex-col md:relative">
