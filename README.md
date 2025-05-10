@@ -93,26 +93,36 @@ SHARP's HTML allows for reactive styling:
         ```
 
         **Additional variables:** You may also need to configure the following variables in your `.env` file:
-        ```
-        DATABASE_URL=postgres://<your-database>
+        ```python
+        # Database from docker-compose
+        DATABASE_URL=postgres://postgres:REPLACE_ME@localhost:5432/twoblade
         PUBLIC_DOMAIN=yourdomain.com
         PUBLIC_WEBSOCKET_URL=https://localhost:3001
 
+        # The JWT secret should be long, random and similar to a password. Do not share it with anyone.
+        # Run `openssl rand -hex 64` to generate one
         JWT_SECRET=
 
+        # S3-compatible works too.
         PRIVATE_B2_KEY_ID=
         PRIVATE_B2_APP_KEY=
         PRIVATE_B2_BUCKET=
         PRIVATE_B2_REGION=
         PRIVATE_B2_ENDPOINT=https://s3.<region>.backblazeb2.com
 
-        TEST_AUTH_TOKEN=<a-cookie-from-the-website-OPTIONAL-used-for-/test>
+        # A cookie from the website, optional & used in /test
+        TEST_AUTH_TOKEN=
 
-        REDIS_URL=
+        # Comes from docker-compose
+        REDIS_URL=redis://redis:6379
+
+        # Cloudflare Turnstile keys, these are for testing & will validate any req. Replace with actual ones in prod.
+        PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+        PRIVATE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
         ```
 
         Ensure that these URLs match the actual URLs of your API server, SHARP server, and WebSocket server.
-        The JWT secret should be long, random and similar to a password. Do not share it with anyone. You can generate one with `openssl rand -hex 64`.
+        
 
 4.  **Run the development server:**
     ```bash
@@ -176,8 +186,6 @@ Make sure to configure CORS rules on your bucket to allow uploads from your doma
 2.  **Start the database:**
     ```bash
     docker compose up -d postgres
-    ```
-
 # Other SHARP instances
 * ⭐ https://twoblade.com - the official client for SHARP.
 * https://garymail.org

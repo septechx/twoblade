@@ -20,6 +20,9 @@
 	import { onDestroy } from 'svelte';
 	import log from '$lib/logger';
 	import { debounce, checkVocabulary } from '$lib/utils';
+	import { PUBLIC_TURNSTILE_SITE_KEY } from '$env/static/public';
+	import { mode } from 'mode-watcher';
+	import { Turnstile } from 'svelte-turnstile';
 
 	const EXPIRY_OPTIONS = [
 		{ label: '10 minutes', minutes: 10 },
@@ -58,6 +61,8 @@
 	);
 	let isRetrying = $state(false);
 	let vocabularyError = $state('');
+	let turnstileToken = $state('');
+	let turnstileReset = $state<() => void>();
 
 	const hashcashPool = new HashcashPool();
 
@@ -193,10 +198,20 @@
 		expiresLabel = null;
 		isBombEmail = false;
 		if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+		turnstileReset?.();
+	}
+
+	function onTurnstileVerified(e: CustomEvent<{ token: string }>) {
+		turnstileToken = e.detail.token;
 	}
 
 	async function handleSubmit(event: { preventDefault: () => void }) {
 		event.preventDefault();
+		if (!turnstileToken) {
+			status = 'Please complete the security check';
+			statusColor = 'destructive';
+			return;
+		}
 		const contentType: EmailContentType = htmlMode ? 'text/html' : 'text/plain';
 		isStatusVisible = true;
 		statusColor = 'default';
@@ -229,7 +244,8 @@
 				scheduled_at: scheduledDate ? scheduledDate.toDate(getLocalTimeZone()).toISOString() : null,
 				expires_at: expiresAt ? expiresAt.toISOString() : null,
 				self_destruct: isBombEmail,
-				hashcash
+				hashcash,
+				turnstileToken
 			};
 			status = 'Sending email...';
 
@@ -442,6 +458,15 @@
 						disabled={!!expiresAt}
 					/>
 				</div>
+			</div>
+
+			<div class="flex justify-center py-2">
+				<Turnstile 
+					siteKey={PUBLIC_TURNSTILE_SITE_KEY}
+					theme={mode.current}
+					on:callback={onTurnstileVerified}
+					bind:reset={turnstileReset}
+				/>
 			</div>
 
 			<Dialog.Footer class="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-end">

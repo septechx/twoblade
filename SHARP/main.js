@@ -557,7 +557,25 @@ app.post('/send', validateAuthToken, async (req, res) => {
     let logEntry;
     let id;
     try {
-        const { hashcash, ...emailData } = req.body;
+        const { hashcash, turnstileToken, ...emailData } = req.body;
+
+        const spamScore = calculateSpamScore(hashcash, emailData.to);
+
+        if (!hashcash || spamScore >= 3) {
+            return res.status(429).json({
+                success: false,
+                message: `Insufficient proof of work. Please retry with at least ${HASHCASH_THRESHOLDS.TRIVIAL} bits.`
+            });
+        }
+
+        if (spamScore > 0 || !req.turnstileVerified) {
+            status = 'spam';
+        }
+
+        if (emailData.scheduled_at) {
+            status = 'scheduled';
+        }
+
         const { from, to, subject, body, content_type = 'text/plain',
             html_body, scheduled_at, reply_to_id, thread_id,
             attachments = [], expires_at = null, self_destruct = false } = emailData;
@@ -588,15 +606,6 @@ app.post('/send', validateAuthToken, async (req, res) => {
                     message: `Message contains words longer than the allowed ${limit} characters for your IQ level (${userIQ}). Please simplify.`
                 });
             }
-        }
-
-        const spamScore = calculateSpamScore(hashcash, emailData.to);
-
-        if (!hashcash || spamScore >= 3) {
-            return res.status(429).json({
-                success: false,
-                message: `Insufficient proof of work. Please retry with at least ${HASHCASH_THRESHOLDS.TRIVIAL} bits.`
-            });
         }
 
         let status = spamScore > 0 ? 'spam' : 'pending';

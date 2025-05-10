@@ -4,6 +4,21 @@ import { PUBLIC_DOMAIN } from '$env/static/public';
 import { sql } from '$lib/server/db';
 import { checkVocabulary } from '$lib/utils';
 
+import { PRIVATE_TURNSTILE_SECRET_KEY } from '$env/static/private';
+
+async function verifyTurnstile(token: string) {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            secret: PRIVATE_TURNSTILE_SECRET_KEY,
+            response: token
+        })
+    });
+    const data = await response.json();
+    return data.success;
+}
+
 export const POST: RequestHandler = async ({ request, cookies }) => {
     try {
         const authToken = cookies.get('auth_token');
@@ -16,7 +31,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
         const statusUrl = `https://${PUBLIC_DOMAIN}/sharp/api/server/health`;
         const statusResponse = await fetch(statusUrl);
-console.log('Status response:', statusResponse.status, statusResponse.statusText);
+
         if (!statusResponse.ok) {
             return json({
                 status: 'error',
@@ -25,6 +40,23 @@ console.log('Status response:', statusResponse.status, statusResponse.statusText
         }
 
         const emailData = await request.json();
+        const { turnstileToken, ...restData } = emailData;
+
+        if (!turnstileToken) {
+            return json({
+                status: 'error',
+                message: 'Security verification required'
+            }, { status: 400 });
+        }
+
+        const isValid = await verifyTurnstile(turnstileToken);
+        if (!isValid) {
+            return json({
+                status: 'error',
+                message: 'Security verification failed'
+            }, { status: 400 });
+        }
+
         let {
             from, to, subject, body,
             content_type = 'text/plain',
@@ -36,7 +68,7 @@ console.log('Status response:', statusResponse.status, statusResponse.statusText
             expires_at = null,
             self_destruct = false,
             hashcash
-        } = emailData;
+        } = restData;
 
         try {
             const username = from.split('#')[0];
@@ -83,7 +115,8 @@ console.log('Status response:', statusResponse.status, statusResponse.statusText
                 attachments,
                 expires_at,
                 self_destruct,
-                hashcash
+                hashcash,
+                turnstileToken
             })
         });
 
