@@ -165,7 +165,7 @@ SHARP uses addresses in the format `user#domain.com`.
 Besides configuration available through the `.env` file, some core protocol and behavior settings are defined as constants in `SHARP/main.js`:
 
 ```javascript
-const PROTOCOL_VERSION = 'SHARP/1.1'
+const PROTOCOL_VERSION = 'SHARP/1.x'
 
 const KEYWORDS = {
     promotions: new Set([/* ...keywords... */]),
@@ -192,7 +192,7 @@ const HASHCASH_THRESHOLDS = {
 
 Additionally, `main.js` includes IQ-based vocabulary checks:
 ```javascript
-// filepath: c:\Users\FaceDev\Documents\GitHub\twoblade\SHARP\main.js
+// filepath: SHARP\main.js
 function checkVocabulary(text, iq) {
     let maxWordLength;
 
