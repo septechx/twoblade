@@ -79,6 +79,7 @@
 							<li>Classification Labels (e.g., primary, promotions)</li>
 							<li>Expiration and Self-Destruct settings</li>
 							<li>Hashcash Headers (for spam analysis)</li>
+							<li>Outpoot Nullmark™ data (for spam analysis and content moderation)</li>
 						</ul>
 					</div>
 
@@ -124,7 +125,7 @@
 				<p class="mb-4">We use the collected information for the following purposes:</p>
 				<ul class="ml-6 list-disc space-y-2">
 					<li><strong>Providing Email Services:</strong> Delivering emails locally and to remote SHARP servers, storing emails and attachments, managing contacts and drafts.</li>
-					<li><strong>Security and Authentication:</strong> Verifying your identity, protecting against unauthorized access, detecting and preventing spam using Hashcash analysis.</li>
+					<li><strong>Security and Authentication:</strong> Verifying your identity, protecting against unauthorized access, detecting and preventing spam using Hashcash analysis and Outpoot Nullmark™ technology.</li>
 					<li><strong>Service Improvement:</strong> Analyzing usage patterns (in aggregate, non-identifiable ways) to enhance features and performance.</li>
 					<li><strong>Feature Provision:</strong> Enabling features like scheduled sending, email expiration, self-destruct, snoozing, notifications, and vocabulary checks based on IQ.</li>
 					<li><strong>Email Classification:</strong> Automatically categorizing emails based on keywords and structure (see Section 4).</li>
@@ -139,8 +140,9 @@
 				<p class="mb-4">We use automated systems (including keyword analysis and HTML structure analysis) for email classification (e.g., Promotions, Updates). Currently, this does not involve external AI providers.</p>
 				<ul class="ml-6 list-disc space-y-2">
 					<li>Email content is processed securely within our system for classification.</li>
-					<li>No personal data from your emails is used to train external AI models.</li>
-					<li>Classification helps organize your inbox but is based on predefined rules.</li>
+					<li>No personal data from your emails is used to train external AI models, except for Twoblade's own proprietary AI models that may be used to improve our services.</li>
+					<li>Classification primarily helps organize your inbox based on predefined rules.</li>
+					<li>Any AI features developed by Twoblade process your data internally and securely.</li>
 				</ul>
 			</Card.Content>
 

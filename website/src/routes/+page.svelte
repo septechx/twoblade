@@ -39,7 +39,7 @@
 			id: 'anti-spam',
 			icon: 'Shield',
 			title: 'Smart Anti-Spam',
-			description: 'Hashcash and IQ-based vocabulary controls'
+			description: 'Hashcash and IQ-based vocabulary controls, paired with Outpoot Nullmark™'
 		},
 		{
 			id: 'scheduling',
