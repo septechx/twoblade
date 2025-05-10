@@ -560,6 +560,7 @@ app.post('/send', validateAuthToken, async (req, res) => {
         const { hashcash, turnstileToken, ...emailData } = req.body;
 
         const spamScore = calculateSpamScore(hashcash, emailData.to);
+        let status = spamScore > 0 ? 'spam' : 'pending';
 
         if (!hashcash || spamScore >= 3) {
             return res.status(429).json({
@@ -608,7 +609,6 @@ app.post('/send', validateAuthToken, async (req, res) => {
             }
         }
 
-        let status = spamScore > 0 ? 'spam' : 'pending';
         if (emailData.scheduled_at) status = 'scheduled';
 
         const attachmentKeys = attachments.map(att => att.key).filter(Boolean);
