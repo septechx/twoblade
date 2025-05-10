@@ -11,7 +11,7 @@ This server implements the SHARP protocol, a decentralized email system that use
 ### Message Exchange Flow
 
 1. **Connection Establishment**
-   ```json
+   ```jsonc
    // Client -> Server
    { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.2" }
    // Server -> Client
@@ -19,7 +19,7 @@ This server implements the SHARP protocol, a decentralized email system that use
    ```
 
 2. **Mail Delivery**
-   ```json
+   ```jsonc
    // Client -> Server
    { "type": "MAIL_TO", "address": "recipient#domain.com" }
    // Server -> Client
@@ -27,7 +27,7 @@ This server implements the SHARP protocol, a decentralized email system that use
    ```
 
 3. **Content Transfer**
-   ```json
+   ```jsonc
    // Client -> Server
    { "type": "DATA" }
    // Server -> Client
