@@ -79,52 +79,45 @@ Messages are automatically classified into categories:
 ## Running the Server
 
 1.  **Navigate to the `SHARP` directory:**
-
     ```bash
     cd SHARP
     ```
 
 2.  **Install dependencies:**
-
     ```bash
     bun install
     ```
 
 3.  **Run the initialization script:**
-
     ```bash
-    cd database
-    bash init.sh
+    bash bash/init.sh
     ```
 
-    *   This script will prompt you for your domain name and PostgreSQL password.
+    *   This script will prompt you for your domain name password.
     *   It will create a `.env` file with the necessary environment variables.
 
 4.  **Configure the `docker-compose.yml` file:**
 
-    *   Navigate to the `SHARP/database` directory.
+    *   Navigate to the main directory of the repo.
     *   Edit the `docker-compose.yml` file to set the `POSTGRES_PASSWORD` environment variable.
-
         ```yaml
         version: '3.8'
 
         services:
           postgres_db:
-            ...
+            # ...
             environment:
               POSTGRES_USER: postgres
               POSTGRES_PASSWORD: REPLACE_ME  # Replace with your desired password
-            ...
+            # ...
         ```
 
 5.  **Start the database:**
-
     ```bash
     docker compose up -d
     ```
 
 6.  **Initialize the database schema:**
-
     ```bash
     docker exec -i postgres-db psql -U postgres < init.sql
     ```
@@ -133,7 +126,6 @@ Messages are automatically classified into categories:
 
     *   Create a `.env` file in the `SHARP` directory.
     *   Add the following variables, replacing the values with your actual configuration:
-
         ```
         DATABASE_URL=postgres://user:password@host:port/database
         SHARP_PORT=5000
@@ -142,7 +134,6 @@ Messages are automatically classified into categories:
         ```
 
 8.  **Run the server:**
-
     ```bash
     node main.js
 
@@ -153,10 +144,8 @@ Messages are automatically classified into categories:
     ```
 
 9.  **Add SRV records to Cloudflare (or your DNS provider):**
-
     *   After setting up the SHARP server, you need to add SRV records to your domain's DNS settings so that other SHARP users can discover your server.
     *   These records should point to your server's address and port. The specific records depend on your configuration, but here's an example:
-
         ```
         _sharp._tcp.yourdomain.com. 86400 IN SRV 10 0 5000 yourdomain.com.
         ```
