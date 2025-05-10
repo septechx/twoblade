@@ -4,21 +4,6 @@ import { PUBLIC_DOMAIN } from '$env/static/public';
 import { sql } from '$lib/server/db';
 import { checkVocabulary } from '$lib/utils';
 
-import { PRIVATE_TURNSTILE_SECRET_KEY } from '$env/static/private';
-
-async function verifyTurnstile(token: string) {
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            secret: PRIVATE_TURNSTILE_SECRET_KEY,
-            response: token
-        })
-    });
-    const data = await response.json();
-    return data.success;
-}
-
 export const POST: RequestHandler = async ({ request, cookies }) => {
     try {
         const authToken = cookies.get('auth_token');
@@ -45,15 +30,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         if (!turnstileToken) {
             return json({
                 status: 'error',
-                message: 'Security verification required'
-            }, { status: 400 });
-        }
-
-        const isValid = await verifyTurnstile(turnstileToken);
-        if (!isValid) {
-            return json({
-                status: 'error',
-                message: 'Security verification failed'
+                message: 'Security verification required (Turnstile token missing)'
             }, { status: 400 });
         }
 

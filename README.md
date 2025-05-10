@@ -118,7 +118,6 @@ SHARP's HTML allows for reactive styling:
 
         # Cloudflare Turnstile keys, these are for testing & will validate any req. Replace with actual ones in prod.
         PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
-        PRIVATE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
         ```
 
         Ensure that these URLs match the actual URLs of your API server, SHARP server, and WebSocket server.

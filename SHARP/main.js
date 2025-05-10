@@ -569,6 +569,7 @@ app.post('/send', validateAuthToken, async (req, res) => {
             });
         }
 
+        // if email is spam, scheduled instantly goes to spam tab
         if (spamScore > 0 || !req.turnstileVerified) {
             status = 'spam';
         }
