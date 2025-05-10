@@ -28,13 +28,14 @@ async function verifyTurnstile(token) {
 export async function validateAuthToken(req, res, next) {
     const token = req.headers['authorization']?.split(' ')[1];
     const turnstileToken = req.body?.turnstileToken;
-    
+    console.log('Turnstile token:', turnstileToken);
     req.turnstileVerified = await verifyTurnstile(turnstileToken);
-    
+    console.log('Turnstile verified:', req.turnstileVerified);
+
     if (!token) {
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Authentication required' 
+        return res.status(401).json({
+            success: false,
+            message: 'Authentication required'
         });
     }
 
@@ -50,9 +51,9 @@ export async function validateAuthToken(req, res, next) {
         `;
 
         if (!codes.length) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Invalid or expired session' 
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid or expired session'
             });
         }
 
@@ -74,8 +75,8 @@ export async function validateAuthToken(req, res, next) {
         next();
     } catch (error) {
         console.error('Auth error:', error);
-        return res.status(401).json({ 
-            success: false, 
+        return res.status(401).json({
+            success: false,
             message: error.code === 'ERR_JWT_EXPIRED' ? 'Token expired' : 'Invalid token'
         });
     }

@@ -560,7 +560,7 @@ app.post('/send', validateAuthToken, async (req, res) => {
         const { hashcash, turnstileToken, ...emailData } = req.body;
 
         const spamScore = calculateSpamScore(hashcash, emailData.to);
-        let status = spamScore > 0 ? 'spam' : 'pending';
+        let status = 'pending';
 
         if (!hashcash || spamScore >= 3) {
             return res.status(429).json({
