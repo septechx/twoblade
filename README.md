@@ -1,4 +1,4 @@
-<img style="width: 128px; height: 128px" src="website/static/logo.svg" /><h1 style="font-size: 48px"><a href="https://vyntr.com">Twoblade.com</a> - an email protocol & client</h1>
+<img style="width: 128px; height: 128px" src="website/static/logo.svg" /><h1 style="font-size: 48px"><a href="https://twoblade.com">Twoblade.com</a> - an email protocol & client</h1>
 [Privacy Policy](https://twoblade.com/legal/privacy) | [Terms of Service](https://twoblade.com/legal/terms) | [License](LICENSE) | [YouTube video](https://twoblade.com)
 
 **Twoblade.com** is an interface for **SHARP** (**S**elf-**H**osted **A**ddress **R**outing **P**rotocol) - a decentralized email system that uses the `#` symbol for addressing (e.g., `user#domain.com`).
@@ -34,12 +34,12 @@ SHARP's HTML allows for reactive styling:
 
 2.  **Install dependencies:**
     ```bash
-    npm install
+    bun install
     ```
 
 3.  **Run the initialization script:**
     ```bash
-    bash init.sh
+    bash database/init.sh
     ```
 
 4.  **Set up environment variables:**
@@ -47,7 +47,6 @@ SHARP's HTML allows for reactive styling:
     *   The `init.sh` script will create a `.env` file in the `SHARP` directory.
     *   It will prompt you for your domain name and set up the basic `.env` file.
     *   You may need to modify the `.env` file to match your actual configuration, especially the `DATABASE_URL`.
-
         ```
         DATABASE_URL=postgres://user:password@host:port/database
         SHARP_PORT=5000
@@ -57,7 +56,8 @@ SHARP's HTML allows for reactive styling:
 
 5.  **Run the server:**
     ```bash
-    npm run dev
+    cd ..
+    bun run .
     ```
 
 6.  **Add SRV records to Cloudflare (or your DNS provider):**
@@ -87,14 +87,12 @@ SHARP's HTML allows for reactive styling:
 3.  **Set up environment variables:**
 
     *   Create a `.env` file in the `website` directory.
-    *   Add the following variables, replacing the values with your actual configuration:
-
+    *   Add the following variable, replacing the values with your actual configuration:
         ```
         PUBLIC_DOMAIN=yourdomain.com
         ```
 
         **Additional variables:** You may also need to configure the following variables in your `.env` file:
-
         ```
         DATABASE_URL=postgres://<your-database>
         PUBLIC_DOMAIN=yourdomain.com
@@ -114,6 +112,7 @@ SHARP's HTML allows for reactive styling:
         ```
 
         Ensure that these URLs match the actual URLs of your API server, SHARP server, and WebSocket server.
+        The JWT secret should be long, random and similar to a password. Do not share it with anyone. You can generate one with `openssl rand -hex 64`.
 
 4.  **Run the development server:**
     ```bash
@@ -157,33 +156,26 @@ PRIVATE_B2_ENDPOINT=<s3-endpoint>  # Example: https://s3.<region>.amazonaws.com 
 
 Make sure to configure CORS rules on your bucket to allow uploads from your domain.
 
-## Database Initialization
+## Running the database
 
-1.  **Configure the `docker-compose.yml` file:**
-
-    *   Navigate to the `SHARP/database` directory.
-    *   Edit the `docker-compose.yml` file to set the `POSTGRES_PASSWORD` environment variable.  It is currently set to `REPLACE_ME`.
-
+1.  **Change the default database password:** (optional)
+    *   Open the `docker-compose.yml` file and change `REPLACE_ME` to something else.
         ```yaml
         version: '3.8'
 
         services:
           postgres_db:
-            ...
+            # ...
             environment:
               POSTGRES_USER: postgres
               POSTGRES_PASSWORD: REPLACE_ME  # Replace with your desired password
-            ...
+            # ...
         ```
+    *   Update your `.env` file with the new password.
 
 2.  **Start the database:**
     ```bash
-    docker compose up -d
-    ```
-
-3.  **Initialize the database schema:**
-    ```bash
-    docker exec -i postgres-db psql -U postgres < init.sql
+    docker compose up -d postgres
     ```
 
 # Other SHARP instances
