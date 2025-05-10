@@ -8,9 +8,19 @@ cat > "../.env" << EOF
 DOMAIN_NAME=${DOMAIN}
 DATABASE_URL=postgres://postgres:REPLACE_ME@localhost:5432/postgres
 SHARP_PORT=5000
+HTTP_PORT=5001
+
+# Optional but required for Turnstile spam prevention in production
+# These are the test keys that will accept any token
+PRIVATE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+
+# Used for authentication, must match ../website/.env
+JWT_SECRET=REPLACE_ME_WITH_RANDOM_STRING
 EOF
 
 echo "Created .env"
+echo "NOTE: Replace JWT_SECRET with a secure value (use 'openssl rand -hex 64'). IT MUST MATCH ../website/.env"
+echo "NOTE: In production, replace Turnstile key with your actual key from Cloudflare"
 
 MODERATION_DIR="../../website/websocket/src"
 mkdir -p "$MODERATION_DIR"
