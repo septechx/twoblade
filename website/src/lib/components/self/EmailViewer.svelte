@@ -11,7 +11,7 @@
 		LoaderCircle
 	} from 'lucide-svelte';
 	import { USER_DATA } from '$lib/stores/user';
-	import type { Email, EmailContentType } from '$lib/types/email';
+	import type { AllowedCSSProperty, Email, EmailContentType } from '$lib/types/email';
 	import {
 		ALLOWED_HTML_TAGS,
 		ALLOWED_HTML_ATTRIBUTES,
@@ -222,7 +222,7 @@
 
 		if (!turnstileToken) {
 			toast.loading('Completing security check...', { id: sendToastId });
-			
+
 			try {
 				await new Promise((resolve, reject) => {
 					const timeout = setTimeout(() => reject(new Error('Verification timeout')), 30000);
@@ -369,17 +369,25 @@
 			(DOMPurify as any).addHook(
 				'uponSanitizeElement',
 				(node: Element, data: { tagName: string }) => {
-					const attrs =
-						ALLOWED_HTML_ATTRIBUTES[data.tagName as keyof typeof ALLOWED_HTML_ATTRIBUTES];
-					if (attrs) {
+					const tagName = data.tagName.toLowerCase() as keyof typeof ALLOWED_HTML_ATTRIBUTES;
+					const specificAttrsForTag = ALLOWED_HTML_ATTRIBUTES[tagName];
+					const wildcardAttrs = ALLOWED_HTML_ATTRIBUTES['*'] || [];
+
+					let effectiveAllowedAttrs: readonly string[];
+
+					if (specificAttrsForTag) {
+						const combined = new Set([...specificAttrsForTag, ...wildcardAttrs]);
+						effectiveAllowedAttrs = Array.from(combined);
+					} else {
+						effectiveAllowedAttrs = wildcardAttrs;
+					}
+
+					if (node.attributes) {
 						Array.from(node.attributes).forEach((attr) => {
-							if (!attrs.includes(attr.name)) {
+							if (!effectiveAllowedAttrs.includes(attr.name)) {
 								node.removeAttribute(attr.name);
 							}
 						});
-					} else if (data.tagName !== '*' && node.attributes) {
-						// Remove all attributes if tag is not '*' and has no specific allowed attributes
-						Array.from(node.attributes).forEach((attr) => node.removeAttribute(attr.name));
 					}
 				}
 			);
@@ -388,51 +396,30 @@
 				'uponSanitizeAttribute',
 				(node: Element, data: { attrName: string; attrValue: string }) => {
 					if (data.attrName === 'style') {
-						const styles = data.attrValue.split(';');
-						const validatedStyles = [];
-						for (const style of styles) {
-							const parts = style.split(':');
-							if (parts.length < 2) continue; // Skip invalid format
-
-							const prop = parts[0].trim();
-							let value = parts.slice(1).join(':').trim();
-
-							// Check if property is allowed
-							if (prop && ALLOWED_CSS_PROPERTIES.includes(prop as any)) {
-								// Sanitize pixel values in border properties
-								if (prop === 'border' || prop.startsWith('border-')) {
-									// Replace potentially large/invalid pixel values
-									value = value.replace(/(\d+)(px|em|rem|%|vh|vw)/g, (match, numStr, unit) => {
-										const num = parseInt(numStr, 10);
-										if (isNaN(num)) return ''; // Remove if not a number
-										// Set a reasonable max limit for pixels, allow others?
-										if (unit === 'px') {
-											const clampedNum = Math.min(Math.max(0, num), 20); // Clamp between 0 and 20px for borders
-											console.log(
-												`[Sanitize Style] Clamping border px value: ${num}px -> ${clampedNum}px`
-											);
-											return `${clampedNum}px`;
-										}
-										// Keep other valid units as is for now
-										return `${num}${unit}`;
-									});
-									// Basic color validation (ensure it's hex, rgb, or known color) - very basic
-									value = value.replace(
-										/#[0-9a-fA-F]{3,6}|rgba?\([^)]+\)|[a-zA-Z]+/g,
-										(colorMatch) => {
-											// This is a placeholder - real color validation is complex
-											// For now, just ensures it looks somewhat like a color
-											return colorMatch;
-										}
-									);
+						const parts = data.attrValue.split(';');
+						const out: string[] = [];
+						for (const part of parts) {
+							const [rawProp, ...rawVal] = part.split(':');
+							if (!rawProp || rawVal.length === 0) continue;
+							const prop = rawProp.trim();
+							let value = rawVal.join(':').trim();
+							if (prop && ALLOWED_CSS_PROPERTIES.includes(prop as AllowedCSSProperty)) {
+								if (
+									(value.startsWith('"') && value.endsWith('"')) ||
+									(value.startsWith("'") && value.endsWith("'"))
+								) {
+									value = value.slice(1, -1).trim();
 								}
-								// Add more value sanitization for other props if needed (e.g., font-size)
-
-								validatedStyles.push(`${prop}: ${value}`);
+								if (prop === 'border' || prop.startsWith('border-')) {
+									value = value.replace(/(\d+)(px|em|rem|%|vh|vw)/g, (_m, num) => {
+										const n = Math.min(Math.max(0, parseInt(num, 10)), 20);
+										return `${n}px`;
+									});
+								}
+								out.push(`${prop}: ${value}`);
 							}
 						}
-						data.attrValue = validatedStyles.join('; '); // Add space for readability
-						console.log(`[Sanitize Style] Final style attribute value:`, data.attrValue);
+						data.attrValue = out.join('; ');
 					}
 				}
 			);
@@ -518,11 +505,11 @@
 </script>
 
 <Turnstile
-    siteKey={PUBLIC_TURNSTILE_SITE_KEY}
-    theme={mode.current}
-    size="invisible"
-    on:callback={onTurnstileVerified}
-    bind:reset={turnstileReset}
+	siteKey={PUBLIC_TURNSTILE_SITE_KEY}
+	theme={mode.current}
+	size="invisible"
+	on:callback={onTurnstileVerified}
+	bind:reset={turnstileReset}
 />
 
 {#if email}
