@@ -2,6 +2,8 @@
 
 This server implements the SHARP protocol, a decentralized email system that uses `#` symbols for addressing (e.g., `user#domain.com`).
 
+You can find instructions for running this server in the [main README.md file](../README.md).
+
 ## Protocol Details
 
 * **Version:** SHARP/1.2
@@ -11,7 +13,7 @@ This server implements the SHARP protocol, a decentralized email system that use
 ### Message Exchange Flow
 
 1. **Connection Establishment**
-   ```json
+   ```jsonc
    // Client -> Server
    { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.2" }
    // Server -> Client
@@ -19,7 +21,7 @@ This server implements the SHARP protocol, a decentralized email system that use
    ```
 
 2. **Mail Delivery**
-   ```json
+   ```jsonc
    // Client -> Server
    { "type": "MAIL_TO", "address": "recipient#domain.com" }
    // Server -> Client
@@ -27,7 +29,7 @@ This server implements the SHARP protocol, a decentralized email system that use
    ```
 
 3. **Content Transfer**
-   ```json
+   ```jsonc
    // Client -> Server
    { "type": "DATA" }
    // Server -> Client
@@ -76,94 +78,6 @@ Messages are automatically classified into categories:
 *   **Decentralized Addressing:** Uses `#` symbol for addressing, allowing users to have addresses tied to their own domains.
 *   **Self-Hosting:** Allows users to host their own email servers and control their data.
 
-## Running the Server
-
-1.  **Navigate to the `SHARP` directory:**
-
-    ```bash
-    cd SHARP
-    ```
-
-2.  **Install dependencies:**
-
-    ```bash
-    bun install
-    ```
-
-3.  **Run the initialization script:**
-
-    ```bash
-    cd database
-    bash init.sh
-    ```
-
-    *   This script will prompt you for your domain name and PostgreSQL password.
-    *   It will create a `.env` file with the necessary environment variables.
-
-4.  **Configure the `docker-compose.yml` file:**
-
-    *   Navigate to the `SHARP/database` directory.
-    *   Edit the `docker-compose.yml` file to set the `POSTGRES_PASSWORD` environment variable.
-
-        ```yaml
-        version: '3.8'
-
-        services:
-          postgres_db:
-            ...
-            environment:
-              POSTGRES_USER: postgres
-              POSTGRES_PASSWORD: REPLACE_ME  # Replace with your desired password
-            ...
-        ```
-
-5.  **Start the database:**
-
-    ```bash
-    docker compose up -d
-    ```
-
-6.  **Initialize the database schema:**
-
-    ```bash
-    docker exec -i postgres-db psql -U postgres < init.sql
-    ```
-
-7.  **Set up environment variables:**
-
-    *   Create a `.env` file in the `SHARP` directory.
-    *   Add the following variables, replacing the values with your actual configuration:
-
-        ```
-        DATABASE_URL=postgres://user:password@host:port/database
-        SHARP_PORT=5000
-        HTTP_PORT=5001
-        DOMAIN_NAME=yourdomain.com
-        ```
-
-8.  **Run the server:**
-
-    ```bash
-    node main.js
-
-    # or, recommended:
-    cd ../website
-    chmod +x build.sh
-    ./build.sh
-    ```
-
-9.  **Add SRV records to Cloudflare (or your DNS provider):**
-
-    *   After setting up the SHARP server, you need to add SRV records to your domain's DNS settings so that other SHARP users can discover your server.
-    *   These records should point to your server's address and port. The specific records depend on your configuration, but here's an example:
-
-        ```
-        _sharp._tcp.yourdomain.com. 86400 IN SRV 10 0 5000 yourdomain.com.
-        ```
-
-    *   Replace `yourdomain.com` with your actual domain name and `5000` with the port your SHARP server is running on (defined by `SHARP_PORT` in your `.env` file).
-    *   Consult your DNS provider's documentation for specific instructions on adding SRV records. For Cloudflare, you can typically add these records in the DNS settings panel.
-
 ## SHARP Addresses
 
 SHARP uses addresses in the format `user#domain.com`.
@@ -176,7 +90,7 @@ SHARP uses addresses in the format `user#domain.com`.
 Besides configuration available through the `.env` file, some core protocol and behavior settings are defined as constants in `SHARP/main.js`:
 
 ```javascript
-const PROTOCOL_VERSION = 'SHARP/1.1'
+const PROTOCOL_VERSION = 'SHARP/1.x'
 
 const KEYWORDS = {
     promotions: new Set([/* ...keywords... */]),
@@ -203,7 +117,7 @@ const HASHCASH_THRESHOLDS = {
 
 Additionally, `main.js` includes IQ-based vocabulary checks:
 ```javascript
-// filepath: c:\Users\FaceDev\Documents\GitHub\twoblade\SHARP\main.js
+// filepath: SHARP\main.js
 function checkVocabulary(text, iq) {
     let maxWordLength;
 
