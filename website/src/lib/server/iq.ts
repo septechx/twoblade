@@ -519,7 +519,7 @@ export async function getSessionScore(sessionId: string): Promise<number | undef
     return undefined;
 }
 
-export async function getCurrentQuestion(sessionId: string): Promise<{ question: Question } | { error: string }> {
+export async function getCurrentQuestion(sessionId: string): Promise<{ question: Omit<Question, 'correctIndex'> } | { error: string }> {
     console.time(`getCurrentQuestion_total_${sessionId}`);
     console.time(`getSession_${sessionId}`);
     const session = await getSession(sessionId);
@@ -537,7 +537,7 @@ export async function getCurrentQuestion(sessionId: string): Promise<{ question:
     console.time(`generateQuestion_${sessionId}`);
     const question = generateQuestion(session.currentSection, session.questionIndex, session);
     console.timeEnd(`generateQuestion_${sessionId}`);
-    
+
     session.currentCorrectIndex = question.correctIndex;
 
     console.time(`setSession_${sessionId}`);
@@ -545,8 +545,11 @@ export async function getCurrentQuestion(sessionId: string): Promise<{ question:
     console.timeEnd(`setSession_${sessionId}`);
 
     console.timeEnd(`getCurrentQuestion_total_${sessionId}`);
+
+    const { correctIndex: _, ...safeQuestion } = question;
+
     return {
-        question: question
+        question: safeQuestion
     };
 }
 
