@@ -1,6 +1,7 @@
 import { createClient } from 'redis';
 import type { TestSession } from './iq';
 import { REDIS_URL } from '$env/static/private';
+import { building } from '$app/environment';
 
 const redisUrl = REDIS_URL || 'redis://localhost:6379';
 
@@ -8,9 +9,11 @@ const client = createClient({
   url: redisUrl
 });
 
-client.on('error', (err:any) => console.error('Redis Client Error:', err));
+client.on('error', (err: any) => console.error('Redis Client Error:', err));
 
-await client.connect();
+if (!building) {
+  await client.connect();
+}
 
 export async function setSession(session: TestSession): Promise<void> {
   await client.set(
