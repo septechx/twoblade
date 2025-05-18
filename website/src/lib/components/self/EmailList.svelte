@@ -101,13 +101,14 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ emailId, starred: !email.starred })
 			});
-
-			if (response.ok) {
-				emails[emailIndex] = { ...email, starred: !email.starred };
-			} else {
+			if (!response.ok) {
 				toast.error('Failed to update star status');
+				return;
 			}
-		} catch (error) {
+			const next = [...emails];
+			next[emailIndex] = { ...email, starred: !email.starred };
+			emails = next;
+		} catch {
 			toast.error('Failed to update star status');
 		}
 	}
