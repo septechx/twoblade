@@ -3,10 +3,13 @@
 echo "What is your domain name? (e.g., twoblade.com)"
 read DOMAIN
 
-# Create .env file
-cat > "../.env" << EOF
+POSTGRES_PASSWORD="$(openssl rand -hex 64)"
+POSTGRES_USER="postgres"
+
+# Create SHARP .env file
+cat > ".env" << EOF
 DOMAIN_NAME=${DOMAIN}
-DATABASE_URL=postgres://postgres:REPLACE_ME@localhost:5432/postgres
+DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/postgres
 SHARP_PORT=5000
 HTTP_PORT=5001
 
@@ -16,6 +19,12 @@ PRIVATE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 
 # Used for authentication, must match ../website/.env
 JWT_SECRET=REPLACE_ME_WITH_RANDOM_STRING
+EOF
+
+# Create docker compose .env file
+cat > "../.env" << EOF
+POSTGRES_USER=${POSTGRES_USER}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 EOF
 
 echo "Created .env"
