@@ -11,6 +11,10 @@
 	import { Send, Hammer } from 'lucide-svelte';
 	import { activeUsers } from '$lib/stores/users';
 
+	function sanitizeMessage(text: string): string {
+		return text.normalize('NFC').replace(/\p{M}+/gu, '');
+	}
+
 	let { data } = $props();
 	let isAdmin = $state(data.isAdmin || false);
 
@@ -82,15 +86,18 @@
 		});
 
 		socket.on('recent_messages', (recentMessages: ChatMessage[]) => {
-			messages = recentMessages;
+			messages = recentMessages.map((m) => ({
+				...m,
+				text: sanitizeMessage(m.text)
+			}));
 			scrollToBottom();
 		});
 
 		socket.on('message', (message: ChatMessage) => {
 			// auto‐scroll if we were already at the bottom
 			const wasAtBottom = isScrolledToBottom();
-			messages = [...messages.slice(-199), message];
-			if (wasAtBottom) scrollToBottom();
+			const clean = sanitizeMessage(message.text);
+			messages = [...messages.slice(-199), { ...message, text: clean }];
 		});
 
 		socket.on('error', (error: { message: string }) => {
@@ -145,7 +152,8 @@
 			return;
 		}
 
-		socket.emit('message', messageInput);
+		const out = sanitizeMessage(messageInput);
+		socket.emit('message', out);
 		messageInput = '';
 
 		messageRateLimit.cooldown = true;
