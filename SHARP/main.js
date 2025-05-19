@@ -33,6 +33,16 @@ setInterval(async () => {
             WHERE email_id IN (
                 SELECT id FROM emails
                 WHERE expires_at < NOW()
+                  AND expires_at IS NOT NULL
+            )
+        `;
+
+        // Delete replies to expired emails
+        await sql`
+            DELETE FROM emails
+            WHERE reply_to_id IN (
+                SELECT id FROM emails
+                WHERE expires_at < NOW()
                 AND expires_at IS NOT NULL
             )
         `;
