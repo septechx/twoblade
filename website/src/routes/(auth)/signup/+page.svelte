@@ -67,7 +67,7 @@
 			isUsernameValid = false;
 			return false;
 		}
-	
+
 		usernamePending = true;
 		const response = await fetch(`/api/username/check?username=${encodeURIComponent(value)}`);
 		const data = await response.json();
@@ -168,6 +168,13 @@
 			confirmPassword = '';
 			if (form.success) {
 				username = '';
+				sessionId = '';
+				iqScore = 0;
+				showTest = false;
+				testCompleted = false;
+				formValidated = false;
+				currentQuestion = null;
+				sessionData = null;
 			}
 		}
 	});
