@@ -315,8 +315,6 @@ async function sendEmailToRemoteServer(emailData) {
                 return reject(new Error('Invalid JSON from remote'));
             }
 
-            responses.push(response);
-
             if (response.type === 'ERROR') {
                 cleanup();
                 return reject(new Error(response.message));
@@ -328,9 +326,11 @@ async function sendEmailToRemoteServer(emailData) {
                     return resolve({ success: true, responses });
                 }
 
-                if (steps[stepIndex - 1]?.type !== 'EMAIL_CONTENT') {
-                    sendNextMessage();
+                if (response.message === 'Email content received') {
+                    return;
                 }
+
+                sendNextMessage();
             }
         };
 
