@@ -210,7 +210,7 @@
 										{formatTime(message.timestamp)}
 									</span>
 								</div>
-								<p class="overflow-wrap-anywhere overflow-hidden break-words text-sm">
+								<p class="overflow-wrap-anywhere overflow-hidden break-words break-all text-sm">
 									{message.text}
 								</p>
 							</div>
@@ -302,7 +302,6 @@
 
 	.overflow-wrap-anywhere {
 		overflow-wrap: anywhere;
-		word-break: break-word;
 		min-width: 0;
 	}
 </style>
