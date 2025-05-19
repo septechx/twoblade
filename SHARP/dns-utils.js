@@ -17,36 +17,51 @@ function setCachedEntries(key, value) {
 }
 
 async function fetchSrvRecords(domain) {
-    const cacheKey = `srv:${domain}`;
+    const d = domain.trim().toLowerCase();
+    const cacheKey = `srv:${d}`;
     const cached = getCachedEntries(cacheKey);
     if (cached) return cached;
 
-    const d = domain.trim().toLowerCase();
-    const name = `_sharp._tcp.${d}`;
-    const records = await dns.resolveSrv(name);
+    const srvName = `_sharp._tcp.${d}`;
+    let records;
+
+    try {
+        records = await dns.resolveSrv(srvName);
+    } catch (err) {
+        // if no SRV, fall back to sharp.<domain> A/AAAA
+        if (err.code === 'ENOTFOUND') {
+            const host = `sharp.${d}`;
+            const [v4, v6] = await Promise.all([
+                dns.resolve4(host).catch(() => []),
+                dns.resolve6(host).catch(() => [])
+            ]);
+            if (v4.length + v6.length === 0) throw err;
+            const fb = [{ name: host, port: 5000, ips: [...v4, ...v6] }];
+            setCachedEntries(cacheKey, fb);
+            return fb;
+        }
+        throw err;
+    }
+
     if (!records?.length) {
         throw new Error(`No SHARP SRV records found for ${domain}`);
     }
 
-    // Sort by priority then weight
+    // Sort by priority / weight
     records.sort((a, b) => a.priority - b.priority || b.weight - a.weight);
 
-    // Resolve IPs for each SRV record
-    const resolvedRecords = await Promise.all(records.map(async (srv) => {
+    // resolve each SRV target to A/AAAA
+    const resolved = await Promise.all(records.map(async srv => {
         const [ips4, ips6] = await Promise.all([
             dns.resolve4(srv.name).catch(() => []),
             dns.resolve6(srv.name).catch(() => [])
         ]);
-        return {
-            name: srv.name,
-            port: srv.port,
-            ips: [...ips4, ...ips6]
-        };
+        return { name: srv.name, port: srv.port, ips: [...ips4, ...ips6] };
     }));
 
-    setCachedEntries(cacheKey, resolvedRecords);
-    return resolvedRecords;
-}
+    setCachedEntries(cacheKey, resolved);
+    return resolved;
+} F
 
 export async function resolveSrv(domain) {
     const records = await fetchSrvRecords(domain);
