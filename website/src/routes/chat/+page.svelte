@@ -58,7 +58,8 @@
 	function setupSocket() {
 		socket = io(PUBLIC_WEBSOCKET_URL, {
 			path: '/ws/socket.io',
-			auth: { token: data.token }
+			auth: { token: data.token },
+			transports: ['websocket'],
 		});
 
 		socket.on('connect', () => {

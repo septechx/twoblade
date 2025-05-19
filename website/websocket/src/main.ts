@@ -97,7 +97,8 @@ const io = new Server({
     cors: {
         origin: [`https://${process.env.PUBLIC_DOMAIN}`, "http://localhost:5173"],
         credentials: true
-    }
+    },
+    transports: ['websocket']
 });
 
 io.use(async (socket, next) => {
