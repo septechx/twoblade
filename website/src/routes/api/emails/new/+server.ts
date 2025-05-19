@@ -14,16 +14,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             }, { status: 401 });
         }
 
-        const statusUrl = `https://${PUBLIC_DOMAIN}/sharp/api/server/health`;
-        const statusResponse = await fetch(statusUrl);
-
-        if (!statusResponse.ok) {
-            return json({
-                status: 'error',
-                message: 'Server is not available'
-            }, { status: 503 });
-        }
-
         const emailData = await request.json();
         const { turnstileToken, ...restData } = emailData;
 
@@ -46,6 +36,20 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             self_destruct = false,
             hashcash
         } = restData;
+
+        const targetDomain = to && to.includes('#')
+            ? to.split('#')[1]
+            : PUBLIC_DOMAIN;
+
+        const statusUrl = `https://${targetDomain}/sharp/api/server/health`;
+        const statusResponse = await fetch(statusUrl);
+        console.log('Status response:', statusResponse.status, "url: ", statusUrl);
+        if (!statusResponse.ok) {
+            return json({
+                status: 'error',
+                message: 'Server is not available'
+            }, { status: 503 });
+        }
 
         try {
             const username = from.split('#')[0];
@@ -76,7 +80,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             }, { status: 500 });
         }
 
-        const apiUrl = `https://${PUBLIC_DOMAIN}/sharp/api/send`;
+        const apiUrl = `https://${targetDomain}/sharp/api/send`;
 
         const response = await fetch(apiUrl, {
             method: 'POST',
