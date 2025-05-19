@@ -47,6 +47,13 @@
 		}
 	}, 300);
 
+	function isScrolledToBottom(): boolean {
+		if (!messagesContainer) return true;
+		const threshold = 20;
+		return messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight <
+			threshold;
+	}
+
 	function scrollToBottom() {
 		setTimeout(() => {
 			if (messagesDiv) {
@@ -59,7 +66,7 @@
 		socket = io(PUBLIC_WEBSOCKET_URL, {
 			path: '/ws/socket.io',
 			auth: { token: data.token },
-			transports: ['websocket'],
+			transports: ['websocket']
 		});
 
 		socket.on('connect', () => {
@@ -80,8 +87,10 @@
 		});
 
 		socket.on('message', (message: ChatMessage) => {
+			// auto‐scroll if we were already at the bottom
+			const wasAtBottom = isScrolledToBottom();
 			messages = [...messages.slice(-199), message];
-			scrollToBottom();
+			if (wasAtBottom) scrollToBottom();
 		});
 
 		socket.on('error', (error: { message: string }) => {
@@ -158,12 +167,6 @@
 		name: 'Twoblade Chat',
 		description: 'Global chat room for IQ-based discussions'
 	};
-
-	$effect(() => {
-		if (messages.length && messagesDiv) {
-			messagesDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
-		}
-	});
 
 	$effect(() => {
 		if (messages.length && messagesContainer && !initialScrollDone) {
