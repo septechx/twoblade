@@ -22,7 +22,7 @@ echo "Created .env"
 echo "NOTE: Replace JWT_SECRET with a secure value (use 'openssl rand -hex 64'). IT MUST MATCH ../website/.env"
 echo "NOTE: In production, replace Turnstile key with your actual key from Cloudflare"
 
-MODERATION_DIR="../../website/websocket/src"
+MODERATION_DIR="../website/websocket/src"
 mkdir -p "$MODERATION_DIR"
 cat > "$MODERATION_DIR/moderation.ts" << EOF
 // Moderation service for websocket connections
