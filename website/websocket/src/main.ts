@@ -34,6 +34,33 @@ const RATE_LIMIT = {
     window: 2000
 };
 
+const SIMILARITY_THRESHOLD = 0.8;
+
+function levenshteinDistance(a: string, b: string): number {
+    const matrix = Array(b.length + 1).fill(null).map(() => Array(a.length + 1).fill(null));
+
+    for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+    for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+
+    for (let j = 1; j <= b.length; j++) {
+        for (let i = 1; i <= a.length; i++) {
+            const substitute = matrix[j - 1][i - 1] + (a[i - 1] !== b[j - 1] ? 1 : 0);
+            matrix[j][i] = Math.min(
+                matrix[j - 1][i] + 1,
+                matrix[j][i - 1] + 1,
+                substitute
+            );
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+function similarity(a: string, b: string): number {
+    const distance = levenshteinDistance(a.toLowerCase(), b.toLowerCase());
+    const maxLength = Math.max(a.length, b.length);
+    return 1 - distance / maxLength;
+}
+
 interface User {
     id: number;
     username: string;
@@ -124,6 +151,7 @@ io.use(async (socket, next) => {
 });
 
 const userMessageTimestamps: Map<number, number[]> = new Map();
+const userRecentMessages: Map<number, string[]> = new Map();
 let connectedUsers = new Set();
 
 io.on('connection', (socket) => {
@@ -153,6 +181,16 @@ io.on('connection', (socket) => {
             return;
         }
 
+        const userMessages = userRecentMessages.get(user.id) || [];
+        for (const prevMessage of userMessages) {
+            if (similarity(text, prevMessage) > SIMILARITY_THRESHOLD) {
+                socket.emit('error', {
+                    message: 'Your message is too similar to a recent message you sent.'
+                });
+                return;
+            }
+        }
+
         const now = Date.now();
         const userTimestamps = userMessageTimestamps.get(user.id) || [];
         const recentMessages = userTimestamps.filter(ts => now - ts < RATE_LIMIT.window);
@@ -163,6 +201,10 @@ io.on('connection', (socket) => {
             });
             return;
         }
+
+        userMessages.push(text);
+        if (userMessages.length > 5) userMessages.shift();
+        userRecentMessages.set(user.id, userMessages);
 
         userTimestamps.push(now);
         userMessageTimestamps.set(user.id, userTimestamps);
@@ -238,6 +280,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         userMessageTimestamps.delete(user.id);
+        userRecentMessages.delete(user.id);
         connectedUsers.delete(user.id);
         io.emit('users_count', connectedUsers.size);
         console.log(`User disconnected: ${user.username}#${user.domain}`);
