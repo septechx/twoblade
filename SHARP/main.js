@@ -27,37 +27,36 @@ setInterval(async () => {
 
 setInterval(async () => {
     try {
-        // First, clean up attachments for expired emails
-        await sql`
-            DELETE FROM attachments
-            WHERE email_id IN (
-                SELECT id FROM emails
-                WHERE expires_at < NOW()
-                  AND expires_at IS NOT NULL
-            )
-        `;
-
-        // Delete replies to expired emails
-        await sql`
-            DELETE FROM emails
-            WHERE reply_to_id IN (
-                SELECT id FROM emails
-                WHERE expires_at < NOW()
-                AND expires_at IS NOT NULL
-            )
-        `;
-        // TODO: remove from S3 too
-
-        // Then delete the expired emails
-        await sql`
-            DELETE FROM emails
+        const toDelete = await sql`
+        WITH RECURSIVE to_delete AS (
+            SELECT id
+            FROM emails
             WHERE expires_at < NOW()
-            AND expires_at IS NOT NULL
+                AND expires_at IS NOT NULL
+            UNION ALL
+            SELECT e.id
+            FROM emails e
+            JOIN to_delete td ON e.reply_to_id = td.id
+        )
+        SELECT id FROM to_delete
         `;
+
+        if (toDelete.length > 0) {
+            const ids = toDelete.map(r => r.id);
+            await sql`
+                DELETE FROM attachments
+                WHERE email_id = ANY(${ids})
+            `;
+            await sql`
+                DELETE FROM emails
+                WHERE id = ANY(${ids})
+            `;
+        }
     } catch (error) {
         console.error('Error cleaning up expired emails:', error);
     }
 }, 10000);
+
 
 const PROTOCOL_VERSION = 'SHARP/1.2'
 
@@ -545,6 +544,16 @@ app.post('/send', validateAuthToken, async (req, res) => {
     let id;
     try {
         const { hashcash, turnstileToken, ...emailData } = req.body;
+        let fp, tp;
+        try {
+            fp = parseSharpAddress(emailData.from);
+            tp = parseSharpAddress(emailData.to);
+        } catch {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid SHARP address format'
+            });
+        }
 
         const spamScore = calculateSpamScore(hashcash, emailData.to);
         let status = 'pending';
@@ -568,8 +577,6 @@ app.post('/send', validateAuthToken, async (req, res) => {
         const { from, to, subject, body, content_type = 'text/plain',
             html_body, scheduled_at, reply_to_id, thread_id,
             attachments = [], expires_at = null, self_destruct = false } = emailData;
-
-        const fp = parseSharpAddress(from);
 
         if (fp.username !== req.user.username || fp.domain !== req.user.domain) {
             return res.status(403).json({
@@ -600,7 +607,6 @@ app.post('/send', validateAuthToken, async (req, res) => {
         if (emailData.scheduled_at) status = 'scheduled';
 
         const attachmentKeys = attachments.map(att => att.key).filter(Boolean);
-        const tp = parseSharpAddress(to);
 
         if (scheduled_at) {
             logEntry = await logEmail(from, fp.domain, to, tp.domain, subject, body, content_type, html_body, status, scheduled_at, reply_to_id, thread_id, expires_at, self_destruct);
