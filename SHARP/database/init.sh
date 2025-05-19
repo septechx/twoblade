@@ -30,7 +30,7 @@ cat > "$MODERATION_DIR/moderation.ts" << EOF
 
 export function checkHardcore(msg: string): boolean {
     // Placeholder implementation - should be replaced with actual detection
-    return true;
+    return false;
 }
 EOF
 
