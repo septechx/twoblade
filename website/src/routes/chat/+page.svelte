@@ -8,7 +8,7 @@
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
-	import { Send, Hammer } from 'lucide-svelte';
+	import { Send, Hammer, PauseCircle, PlayCircle } from 'lucide-svelte';
 	import { activeUsers } from '$lib/stores/users';
 
 	function sanitizeMessage(text: string): string {
@@ -36,6 +36,8 @@
 	let initialScrollDone = $state(false);
 	let shakeScreen = $state(false);
 	let isBanned = $state($USER_DATA?.is_banned || false);
+	let isPaused = $state(false);
+	let queuedMessages = $state<ChatMessage[]>([]);
 
 	const debouncedCheckVocabulary = debounce(async () => {
 		const userIQ = $USER_DATA?.iq ?? 100;
@@ -54,8 +56,12 @@
 	function isScrolledToBottom(): boolean {
 		if (!messagesContainer) return true;
 		const threshold = 20;
-		return messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight <
-			threshold;
+		return (
+			messagesContainer.scrollHeight -
+				messagesContainer.scrollTop -
+				messagesContainer.clientHeight <
+			threshold
+		);
 	}
 
 	function scrollToBottom() {
@@ -94,10 +100,15 @@
 		});
 
 		socket.on('message', (message: ChatMessage) => {
-			// auto‐scroll if we were already at the bottom
-			const wasAtBottom = isScrolledToBottom();
 			const clean = sanitizeMessage(message.text);
-			messages = [...messages.slice(-199), { ...message, text: clean }];
+			if (isPaused) {
+				queuedMessages = [...queuedMessages, { ...message, text: clean }];
+			} else {
+				messages = [...messages.slice(-199), { ...message, text: clean }];
+				if (isScrolledToBottom()) {
+					scrollToBottom();
+				}
+			}
 		});
 
 		socket.on('error', (error: { message: string }) => {
@@ -162,6 +173,17 @@
 		setTimeout(() => {
 			messageRateLimit.cooldown = false;
 		}, MESSAGE_COOLDOWN);
+	}
+
+	function toggleStreaming() {
+		isPaused = !isPaused;
+		if (!isPaused && queuedMessages.length > 0) {
+			messages = [...messages, ...queuedMessages];
+			queuedMessages = [];
+			if (isScrolledToBottom()) {
+				scrollToBottom();
+			}
+		}
 	}
 
 	function formatTime(date: string) {
@@ -253,6 +275,13 @@
 					(e.preventDefault(), handleSendMessage())}
 				disabled={isBanned}
 			/>
+			<Button variant="secondary" size="icon" onclick={toggleStreaming} class="px-3">
+				{#if isPaused}
+					<PlayCircle class="h-4 w-4" />
+				{:else}
+					<PauseCircle class="h-4 w-4" />
+				{/if}
+			</Button>
 			<Button
 				variant="default"
 				onclick={handleSendMessage}
