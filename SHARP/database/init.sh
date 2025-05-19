@@ -3,7 +3,7 @@
 echo "What is your domain name? (e.g., twoblade.com)"
 read DOMAIN
 
-POSTGRES_PASSWORD="$(openssl rand -hex 64)"
+POSTGRES_PASSWORD="$(openssl rand -hex 32)"
 POSTGRES_USER="postgres"
 
 # Create SHARP .env file
