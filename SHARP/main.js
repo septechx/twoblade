@@ -191,6 +191,8 @@ async function handleSharpMessage(socket, raw, state) {
                     state.content_type = cmd.content_type || 'text/plain';
                     state.html_body = cmd.html_body || null;
                     state.attachments = cmd.attachments || [];
+
+                    sendJSON(socket, { type: 'OK', message: 'Email content received' });
                 } else if (cmd.type === 'END_DATA') {
                     await processEmail(state);
                     sendJSON(socket, { type: 'OK', message: 'Email processed' });
@@ -325,7 +327,10 @@ async function sendEmailToRemoteServer(emailData) {
                     cleanup();
                     return resolve({ success: true, responses });
                 }
-                sendNextMessage();
+
+                if (steps[stepIndex - 1]?.type !== 'EMAIL_CONTENT') {
+                    sendNextMessage();
+                }
             }
         };
 
@@ -338,6 +343,11 @@ async function sendEmailToRemoteServer(emailData) {
             if (stepIndex < steps.length) {
                 const message = steps[stepIndex++];
                 sendMessage(message);
+
+                if (message.type === 'EMAIL_CONTENT' && steps[stepIndex]?.type === 'END_DATA') {
+                    sendMessage(steps[stepIndex]);
+                    stepIndex++;
+                }
             } else {
                 cleanup();
                 reject(new Error('Unexpected state: No more messages to send.'));
