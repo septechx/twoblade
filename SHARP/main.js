@@ -259,48 +259,15 @@ function classifyEmail(subject, body, htmlBody) {
     return 'primary';
 }
 
-async function validateRemoteServer(healthCheckHost, expectedDomain, httpPort) {
-    const timeout = 5000;
-    const healthPort = httpPort || HTTP_PORT;
-
-    for (const proto of ['https://', 'http://']) {
-        try {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), timeout);
-
-            const url = `${proto}${healthCheckHost}:${healthPort}/sharp/api/server/health`;
-            const res = await fetch(url, { signal: controller.signal });
-            clearTimeout(timer);
-
-            if (!res.ok) continue;
-            const data = await res.json();
-
-            if (data.protocol === PROTOCOL_VERSION && data.domain === expectedDomain) {
-                return { domain: data.domain, protocol: proto, isValid: true };
-            }
-        } catch { }
-    }
-    return { isValid: false, error: 'Server not reachable or invalid' };
-}
-
 async function sendEmailToRemoteServer(emailData) {
     const recAddr = parseSharpAddress(emailData.to);
-    let target, domain, httpPort;
+    let target;
 
     if (recAddr.port) {
         target = { host: recAddr.domain, port: recAddr.port };
-        domain = recAddr.domain;
-        httpPort = recAddr.port + 1;
     } else {
         const srv = await resolveSrv(recAddr.domain);
         target = { host: srv.ip, port: srv.port };
-        domain = recAddr.domain;
-        httpPort = srv.httpPort;
-    }
-
-    const validation = await validateRemoteServer(domain, recAddr.domain, httpPort);
-    if (!validation.isValid) {
-        throw new Error(`Remote server validation failed for ${domain}: ${validation.error}`);
     }
 
     console.log(`[sendEmailToRemoteServer] dialing TCP ${target.host}:${target.port}`);
@@ -647,13 +614,7 @@ app.post('/send', validateAuthToken, async (req, res) => {
             return res.json({ success: true, id });
         }
 
-        try {
-            await validateRemoteServer(tp.domain, tp.domain);
-        } catch (e) {
-            await logEmail(from, fp.domain, to, tp.domain, subject, body, content_type, html_body, 'failed', null, reply_to_id, thread_id, expires_at, self_destruct);
-            throw new Error(`Invalid destination: ${e.message}`);
-        }
-
+        // for remote delivery, just log and attempt TCP delivery
         logEntry = await logEmail(
             from, fp.domain, to, tp.domain, subject, body,
             content_type, html_body, status, scheduled_at,
