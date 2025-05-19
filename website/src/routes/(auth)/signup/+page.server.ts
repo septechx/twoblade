@@ -5,6 +5,7 @@ import { sql } from '$lib/server/db';
 import { PUBLIC_DOMAIN } from '$env/static/public';
 import { getSessionScore, deleteSession_ } from '$lib/server/iq';
 import { validateUsername } from '$lib/utils';
+import { checkHardcore } from '../../../../websocket/src/moderation';
 
 const SALT_ROUNDS = 10;
 
@@ -18,18 +19,15 @@ export const actions: Actions = {
             const sessionId = data.get('sessionId')?.toString();
             const clientIqScore = data.get('iqScore')?.toString();
 
-            console.log('Received signup data:', { 
-                username, 
-                password: !!password, 
-                confirmPassword: !!confirmPassword, 
-                sessionId, 
-                clientIqScore 
-            });
-
             if (!username) return fail(400, { error: 'Username is required' });
+
             if (!validateUsername(username)) {
                 return fail(400, { error: 'Invalid username format', username });
             }
+            if (checkHardcore(username)) {
+                return fail(400, { error: 'Username contains inappropriate content' });
+            }
+
             if (!password) return fail(400, { error: 'Password is required', username });
             if (!confirmPassword) return fail(400, { error: 'Password confirmation is required', username });
             if (!sessionId) return fail(400, { error: 'IQ test session ID is missing', username });
