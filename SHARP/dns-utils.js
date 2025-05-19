@@ -61,7 +61,7 @@ async function fetchSrvRecords(domain) {
 
     setCachedEntries(cacheKey, resolved);
     return resolved;
-} F
+}
 
 export async function resolveSrv(domain) {
     const records = await fetchSrvRecords(domain);
