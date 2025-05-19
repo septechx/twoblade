@@ -21,7 +21,9 @@ async function fetchSrvRecords(domain) {
     const cached = getCachedEntries(cacheKey);
     if (cached) return cached;
 
-    const records = await dns.resolveSrv(`_sharp._tcp.${domain}`);
+    const d = domain.trim().toLowerCase();
+    const name = `_sharp._tcp.${d}`;
+    const records = await dns.resolveSrv(name);
     if (!records?.length) {
         throw new Error(`No SHARP SRV records found for ${domain}`);
     }
