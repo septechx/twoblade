@@ -37,20 +37,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             hashcash
         } = restData;
 
-        const targetDomain = to && to.includes('#')
-            ? to.split('#')[1]
-            : PUBLIC_DOMAIN;
-
-        const statusUrl = `https://${targetDomain}/sharp/api/server/health`;
-        const statusResponse = await fetch(statusUrl);
-        console.log('Status response:', statusResponse.status, "url: ", statusUrl);
-        if (!statusResponse.ok) {
-            return json({
-                status: 'error',
-                message: 'Server is not available'
-            }, { status: 503 });
-        }
-
         try {
             const username = from.split('#')[0];
             if (username) {
@@ -80,7 +66,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             }, { status: 500 });
         }
 
-        const apiUrl = `https://${targetDomain}/sharp/api/send`;
+        const apiUrl = `https://${PUBLIC_DOMAIN}/sharp/api/send`;
 
         const response = await fetch(apiUrl, {
             method: 'POST',
