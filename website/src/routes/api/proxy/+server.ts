@@ -21,14 +21,11 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 
     const headers: Record<string, string> = {
-      'Content-Type': contentType,
+      'Content-Type': contentType!,
       'Cache-Control': 'public, max-age=31536000',
-      'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': '*',
+      'Content-Disposition': 'attachment; filename="image' + contentType!.substring(6).replace('/', '.') + '"'
     };
-
-    if (contentType.startsWith('image/svg+xml')) {
-      headers['Content-Disposition'] = 'attachment; filename="image.svg"';
-    }
 
     return new Response(response.body, { headers });
   } catch (e) {
