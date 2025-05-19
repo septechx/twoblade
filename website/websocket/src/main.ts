@@ -165,14 +165,19 @@ io.on('connection', (socket) => {
 
     socket.emit('recent_messages', messages.slice(-200));
 
-    socket.on('message', async (text: string) => {
+    socket.on('message', async (text_: unknown) => {
         if (bannedUserIds.has(user.id)) {
             socket.emit('error', { message: 'You are banned from sending messages.' });
             socket.disconnect(true);
             return;
         }
 
-        text = text.trim().slice(0, 500);
+        if (typeof text_ !== 'string') {
+            socket.emit('error', { message: 'Invalid message format' });
+            return;
+        }
+
+        const text = text_.trim().slice(0, 500);
         if (!text) return;
 
         if (checkHardcore(text)) {
