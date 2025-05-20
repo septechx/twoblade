@@ -41,6 +41,15 @@
 
 	let userMentionString = $derived($USER_DATA?.username ? `@${$USER_DATA.username}` : null);
 
+	function checkUserMention(text: string, mention: string | null): boolean {
+		if (!mention) return false;
+
+		const escapedMention = mention.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+		const regex = new RegExp(`${escapedMention}\\b`);
+		return regex.test(text);
+	}
+
 	const debouncedCheckVocabulary = debounce(async () => {
 		const userIQ = $USER_DATA?.iq ?? 100;
 		if (messageInput) {
@@ -218,7 +227,7 @@
 		<div class="flex flex-col p-4" bind:this={messagesContainer}>
 			<div bind:this={messagesDiv}>
 				{#each messages as message (message.id)}
-					{@const isUserMentioned = userMentionString && message.text.includes(userMentionString)}
+					{@const isUserMentioned = checkUserMention(message.text, userMentionString)}
 					<div
 						class={cn(
 							'animate-message-appear group mb-2 flex max-w-full items-start gap-3 rounded-lg p-2 transition-colors',
