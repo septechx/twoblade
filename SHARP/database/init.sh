@@ -1,10 +1,15 @@
 #!/bin/bash
 
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+SHARP_DIR="$(dirname "$SCRIPT_DIR")"
+ROOT_DIR="$(dirname "$SHARP_DIR")"
+
 echo "What is your domain name? (e.g., twoblade.com)"
 read DOMAIN
 
 # Create .env file
-cat > "../.env" << EOF
+cat >"$SHARP_DIR/.env" <<EOF
 DOMAIN_NAME=${DOMAIN}
 DATABASE_URL=postgres://postgres:REPLACE_ME@localhost:5432/postgres
 SHARP_PORT=5000
@@ -22,9 +27,9 @@ echo "Created .env"
 echo "NOTE: Replace JWT_SECRET with a secure value (use 'openssl rand -hex 64'). IT MUST MATCH ../website/.env"
 echo "NOTE: In production, replace Turnstile key with your actual key from Cloudflare"
 
-MODERATION_DIR="../website/websocket/src"
+MODERATION_DIR="$ROOT_DIR/website/websocket/src"
 mkdir -p "$MODERATION_DIR"
-cat > "$MODERATION_DIR/moderation.ts" << EOF
+cat >"$MODERATION_DIR/moderation.ts" <<EOF
 // Moderation service for websocket connections
 // Created by init.sh
 
