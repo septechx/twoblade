@@ -53,7 +53,8 @@
 	const debouncedCheckVocabulary = debounce(async () => {
 		const userIQ = $USER_DATA?.iq ?? 100;
 		if (messageInput) {
-			const { isValid, limit } = checkVocabulary(messageInput, userIQ);
+			// const { isValid, limit } = checkVocabulary(messageInput, userIQ);
+			const { isValid, limit } = { isValid: true, limit: null };
 			if (!isValid) {
 				vocabularyError = `Word length exceeds limit (${limit}) for IQ ${userIQ}.`;
 			} else {
