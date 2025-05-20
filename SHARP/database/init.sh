@@ -21,11 +21,10 @@ PRIVATE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 JWT_SECRET=REPLACE_ME_WITH_RANDOM_STRING
 EOF
 
-# Create docker compose .env file
-cat > "../.env" << EOF
-POSTGRES_USER=${POSTGRES_USER}
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-EOF
+# Generate Docker Compose .env file from SHARP .env
+echo "# Docker Compose .env file" > "../.env"
+echo "# This file is used to configure the Docker Compose services." >> "../.env"
+grep -E "POSTGRES_USER|POSTGRES_PASSWORD" ".env" >> "../.env"
 
 echo "Created .env"
 echo "NOTE: Replace JWT_SECRET with a secure value (use 'openssl rand -hex 64'). IT MUST MATCH ../website/.env"
