@@ -13,7 +13,11 @@ export const actions: Actions = {
     default: async ({ request, getClientAddress }) => {
         try {
             const data = await request.formData();
-            const ip = getClientAddress();
+            const ip =
+                request.headers.get('cf-connecting-ip') ??
+                request.headers.get('x-real-ip') ??
+                request.headers.get('x-forwarded-for')?.split(',')[0] ??
+                getClientAddress();
             const userAgent = request.headers.get('user-agent') || '';
 
             const username = data.get('username')?.toString()?.toLowerCase();
