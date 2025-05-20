@@ -39,6 +39,8 @@
 	let isPaused = $state(false);
 	let queuedMessages = $state<ChatMessage[]>([]);
 
+	let userMentionString = $derived($USER_DATA?.username ? `@${$USER_DATA.username}` : null);
+
 	const debouncedCheckVocabulary = debounce(async () => {
 		const userIQ = $USER_DATA?.iq ?? 100;
 		if (messageInput) {
@@ -215,9 +217,13 @@
 	<ScrollArea class="flex-1">
 		<div class="flex flex-col p-4" bind:this={messagesContainer}>
 			<div bind:this={messagesDiv}>
-				{#each messages as message}
+				{#each messages as message (message.id)}
+					{@const isUserMentioned = userMentionString && message.text.includes(userMentionString)}
 					<div
-						class="animate-message-appear hover:bg-muted/50 group mb-2 flex max-w-full items-start gap-3 rounded-lg p-2 transition-colors"
+						class={cn(
+							'animate-message-appear group mb-2 flex max-w-full items-start gap-3 rounded-lg p-2 transition-colors',
+							isUserMentioned ? 'bg-yellow-500/30 hover:bg-yellow-600/30' : 'hover:bg-muted/50'
+						)}
 					>
 						<div
 							class={cn(
