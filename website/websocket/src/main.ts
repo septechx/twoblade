@@ -241,19 +241,19 @@ io.on('connection', (socket) => {
         );
 
         const redisKeyUserRecentMessages = `${REDIS_USER_RECENT_MSGS_PREFIX}${user.id}`;
-        const recentMessagesFromRedis = await redis.lrange(
-            redisKeyUserRecentMessages,
-            0,
-            -1
-        );
-        for (const prevMessage of recentMessagesFromRedis) {
-            if (similarity(text, prevMessage) > SIMILARITY_THRESHOLD) {
-                socket.emit('error', {
-                    message: 'Your message is too similar to a recent message you sent.'
-                });
-                return;
-            }
-        }
+        // const recentMessagesFromRedis = await redis.lrange(
+        //     redisKeyUserRecentMessages,
+        //     0,
+        //     -1
+        // );
+        // for (const prevMessage of recentMessagesFromRedis) {
+        //     if (similarity(text, prevMessage) > SIMILARITY_THRESHOLD) {
+        //         socket.emit('error', {
+        //             message: 'Your message is too similar to a recent message you sent.'
+        //         });
+        //         return;
+        //     }
+        // }
 
         const { isValid, limit } = checkVocabulary(text, user.iq);
         if (!isValid) {
