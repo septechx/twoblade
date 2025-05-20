@@ -2,6 +2,10 @@
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
+if [ -z "$SCRIPT_DIR" ]; then
+    echo "Error: Failed to resolve SCRIPT_DIR. Ensure the script is executed from a valid directory." >&2
+    exit 1
+fi
 SHARP_DIR="$(dirname "$SCRIPT_DIR")"
 ROOT_DIR="$(dirname "$SHARP_DIR")"
 
