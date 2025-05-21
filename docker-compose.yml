@@ -1,14 +1,22 @@
-version: '3.8'
+version: "3.8"
 services:
   app:
     build:
       context: .
       target: production-main
       dockerfile: website/Dockerfile
-    ports:
-      - "3002:3000"
-    env_file:
-      - website/.env
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+        - PUBLIC_DOMAIN=${PUBLIC_DOMAIN}
+        - PUBLIC_WEBSOCKET=${PUBLIC_WEBSOCKET}
+        - JWT_SECRET=${JWT_SECRET}
+        - PRIVATE_B2_KEY_ID=${PRIVATE_B2_KEY_ID}
+        - PRIVATE_B2_APP_KEY=${PRIVATE_B2_APP_KEY}
+        - PRIVATE_B2_BUCKET=${PRIVATE_B2_BUCKET}
+        - PRIVATE_B2_REGION=${PRIVATE_B2_REGION}
+        - PRIVATE_B2_ENDPOINT=${PRIVATE_B2_ENDPOINT}
+        - REDIS_URL=${REDIS_URL}
+        - PUBLIC_TURNSTILE_SITE_KEY=${PUBLIC_TURNSTILE_SITE_KEY}
     depends_on:
       - websocket
       - redis
@@ -18,20 +26,34 @@ services:
       context: .
       target: production-websocket
       dockerfile: website/Dockerfile
-    ports:
-      - "8081:8080"
-    env_file:
-      - website/.env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - PUBLIC_DOMAIN=${PUBLIC_DOMAIN}
+      - PUBLIC_WEBSOCKET=${PUBLIC_WEBSOCKET}
+      - JWT_SECRET=${JWT_SECRET}
+      - PRIVATE_B2_KEY_ID=${PRIVATE_B2_KEY_ID}
+      - PRIVATE_B2_APP_KEY=${PRIVATE_B2_APP_KEY}
+      - PRIVATE_B2_BUCKET=${PRIVATE_B2_BUCKET}
+      - PRIVATE_B2_REGION=${PRIVATE_B2_REGION}
+      - PRIVATE_B2_ENDPOINT=${PRIVATE_B2_ENDPOINT}
+      - REDIS_URL=${REDIS_URL}
+      - PUBLIC_TURNSTILE_SITE_KEY=${PUBLIC_TURNSTILE_SITE_KEY}
 
   sharp:
     build:
       context: .
       dockerfile: SHARP/Dockerfile
-    ports:
-      - "5000:5000"
-      - "5001:5001"
-    env_file:
-      - SHARP/.env
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - DATABASE_URL=${DATABASE_URL}
+      - SHARP_PORT=${SHARP_PORT}
+      - HTTP_PORT=${HTTP_PORT}
+      - PRIVATE_TURNSTILE_SECRET_KEY=${PRIVATE_TURNSTILE_SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    labels:
+      - "traefik.tcp.routers.sharp-tcp.entryPoints=sharp-tcp"
+      - "traefik.tcp.routers.sharp-tcp.rule=HostSNI(`*`)"
+      - "traefik.tcp.services.sharp-tcp.loadBalancer.server.port=5000"
 
   redis:
     image: redis:8-alpine
@@ -43,13 +65,12 @@ services:
     image: pgvector/pgvector:pg16
     container_name: postgres-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./SHARP/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./SHARP/databse/migrations:/docker-entrypoint-initdb.d/migrations
     restart: unless-stopped
 
 volumes:

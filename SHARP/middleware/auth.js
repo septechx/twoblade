@@ -38,12 +38,13 @@ export async function validateAuthToken(req, res, next) {
         });
     }
 
+    req.turnstileVerified = await verifyTurnstile(turnstileToken);
+
     try {
         const { payload } = await jwtVerify(token, secret, {
             algorithms: [alg]
         });
 
-        // check if code is still valid
         const codes = await sql`
             SELECT user_id FROM user_secret_codes 
             WHERE code = ${payload.code}
@@ -56,7 +57,6 @@ export async function validateAuthToken(req, res, next) {
             });
         }
 
-        // get user data
         const users = await sql`
             SELECT id, username, domain, is_banned
             FROM users 
