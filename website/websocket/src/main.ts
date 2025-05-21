@@ -17,7 +17,7 @@ const io = new Server(server, {
   },
   transports: ['websocket']
 });
-server.listen(Number(PORT));
+server.listen(Number(8080));
 // -- End Temp Debug --
 
 /*
