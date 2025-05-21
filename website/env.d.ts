@@ -1,7 +1,5 @@
-
-
 declare module '$env/static/public' {
-  export const PUBLIC_DOAMAIN: string;
+  export const PUBLIC_DOMAIN: string;
   export const PUBLIC_WEBSOCKET_URL: string;
 }
 
