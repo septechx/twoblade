@@ -8,27 +8,41 @@ You can find instructions for running this server in the [main README.md file](.
 
 * **Version:** SHARP/1.3
 * **Transport:** TCP with JSON messages
-* **Default Ports:** 5000 (SHARP), 5001 (HTTP API)
+* **Default Ports:** 5000 (SHARP TCP), 5001 (HTTP API)
 
 ### Message Exchange Flow
 
-1. **Connection Establishment**
+1. **Connection Establishment (HELLO)**
    ```jsonc
    // Client -> Server
-   { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.3" }
-   // Server -> Client
+   { 
+     "type": "HELLO", 
+     "server_id": "sender#domain.com", 
+     "protocol": "SHARP/1.3" 
+   }
+   // Server -> Client (Success)
    { "type": "OK", "protocol": "SHARP/1.3" }
+   // Server -> Client (Error - Protocol Mismatch)
+   { "type": "ERROR", "message": "Unsupported protocol version", "code": 400 }
    ```
 
-2. **Mail Delivery**
+2. **Mail Delivery (MAIL_TO)**
    ```jsonc
    // Client -> Server
-   { "type": "MAIL_TO", "address": "recipient#domain.com" }
-   // Server -> Client
+   { 
+     "type": "MAIL_TO", 
+     "address": "recipient#domain.com",
+     "hashcash": "1:18:230701100000:recipient#domain.com::xxxx:yyyy"
+   }
+   // Server -> Client (Success)
    { "type": "OK" }
+   // Server -> Client (Error - Missing/Invalid Hashcash)
+   { "type": "ERROR", "message": "Insufficient proof of work", "code": 429 }
+   // Server -> Client (Error - Unknown Recipient)
+   { "type": "ERROR", "message": "Recipient user not found", "code": 550 }
    ```
 
-3. **Content Transfer**
+3. **Content Transfer (DATA & EMAIL_CONTENT)**
    ```jsonc
    // Client -> Server
    { "type": "DATA" }
@@ -41,13 +55,50 @@ You can find instructions for running this server in the [main README.md file](.
      "body": "Message body",
      "content_type": "text/plain",
      "html_body": null,
-     "attachments": []
+     "attachments": ["key1", "key2"]
    }
+   // Server -> Client
+   { "type": "OK", "message": "Email content received" }
    // Client -> Server
    { "type": "END_DATA" }
-   // Server -> Client
+   // Server -> Client (Success)
    { "type": "OK", "message": "Email processed" }
+   // Server -> Client (Error - Processing Failed)
+   { "type": "ERROR", "message": "Email processing failed", "code": 500 }
    ```
+
+### Error Codes
+
+SHARP uses HTTP-like status codes for errors:
+
+* **400 Bad Request**
+  - Invalid JSON format
+  - Expected different command type
+  - Invalid address format
+  - Invalid username format
+  - Message too large (>1MB per message)
+
+* **413 Payload Too Large**
+  - Total buffer overflow (>10MB)
+  - Attachment too large
+
+* **429 Too Many Requests**
+  - Missing Hashcash token
+  - Invalid/reused Hashcash token
+  - Insufficient proof-of-work bits
+  - Token date too far in future
+  - Token expired
+
+* **451 Unavailable For Legal Reasons**
+  - Server doesn't handle mail for recipient domain
+
+* **500 Internal Server Error**
+  - Email processing failed
+  - Database errors
+
+* **550 Mailbox Unavailable**
+  - Recipient user not found
+  - Invalid recipient
 
 ### Anti-Spam Features
 
