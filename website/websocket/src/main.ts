@@ -4,6 +4,16 @@ import postgres from 'postgres';
 import Redis from 'ioredis';
 import { checkHardcore } from './moderation.js';
 
+// -- Begin Temp Debug --
+import http from 'http';
+const server = http.createServer();
+server.on('request', (req, res) => {
+  console.log('Incoming URL:', req.url);
+});
+const io = new Server(server, { ... });
+server.listen(Number(PORT));
+// -- End Temp Debug --
+
 const REDIS_URL = process.env.REDIS_URL;
 if (!REDIS_URL) {
   console.error("REDIS_URL is not defined in environment variables.");
