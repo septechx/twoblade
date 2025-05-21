@@ -6,7 +6,7 @@ You can find instructions for running this server in the [main README.md file](.
 
 ## Protocol Details
 
-* **Version:** SHARP/1.2
+* **Version:** SHARP/1.3
 * **Transport:** TCP with JSON messages
 * **Default Ports:** 5000 (SHARP), 5001 (HTTP API)
 
@@ -15,9 +15,9 @@ You can find instructions for running this server in the [main README.md file](.
 1. **Connection Establishment**
    ```jsonc
    // Client -> Server
-   { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.2" }
+   { "type": "HELLO", "server_id": "sender#domain.com", "protocol": "SHARP/1.3" }
    // Server -> Client
-   { "type": "OK", "protocol": "SHARP/1.2" }
+   { "type": "OK", "protocol": "SHARP/1.3" }
    ```
 
 2. **Mail Delivery**
