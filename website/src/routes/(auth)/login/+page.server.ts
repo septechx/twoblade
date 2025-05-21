@@ -39,7 +39,7 @@ export const actions: Actions = {
             }
 
             if (user.is_banned) {
-                 return fail(403, { success: false, error: 'Your account is banned.', username });
+                return fail(403, { success: false, error: 'Your account is banned.', username });
             }
 
             if (user.password_hash === 'DELETED_ACCOUNT') {
@@ -54,7 +54,11 @@ export const actions: Actions = {
 
             const { token, code } = await createAuthJWT({ userId: user.id });
 
-            const ip = getClientAddress();
+            const ip =
+                headers.get('cf-connecting-ip') ??
+                headers.get('x-real-ip') ??
+                headers.get('x-forwarded-for')?.split(',')[0] ??
+                getClientAddress();
             const userAgent = headers.get('user-agent') ?? undefined;
             await storeCode(user.id, code, ip, userAgent);
 
@@ -68,13 +72,13 @@ export const actions: Actions = {
 
             throw redirect(303, '/inbox');
         } catch (error: any) {
-             if (error.status && error.status >= 300 && error.status < 400) {
-                 throw error;
-             }
+            if (error.status && error.status >= 300 && error.status < 400) {
+                throw error;
+            }
             console.error('Login error:', error);
 
             if (error.message === 'User is banned and cannot create a new token.') {
-                 return fail(403, { success: false, error: 'Your account is banned.', username });
+                return fail(403, { success: false, error: 'Your account is banned.', username });
             }
             return fail(500, { success: false, error: 'Internal server error. Please try again later.', username });
         }

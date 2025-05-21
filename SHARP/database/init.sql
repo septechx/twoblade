@@ -35,11 +35,14 @@ CREATE TABLE
         iq INTEGER,
         is_banned BOOLEAN DEFAULT FALSE,
         is_admin BOOLEAN DEFAULT FALSE,
+        ip VARCHAR(48),
+        user_agent TEXT,
         deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
 CREATE INDEX idx_users_username ON users (username);
+CREATE INDEX idx_users_ip ON users(ip);
 
 CREATE TABLE
     user_secret_codes (

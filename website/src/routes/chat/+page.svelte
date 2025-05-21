@@ -39,10 +39,22 @@
 	let isPaused = $state(false);
 	let queuedMessages = $state<ChatMessage[]>([]);
 
+	let userMentionString = $derived($USER_DATA?.username ? `@${$USER_DATA.username}` : null);
+
+	function checkUserMention(text: string, mention: string | null): boolean {
+		if (!mention) return false;
+
+		const escapedMention = mention.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+		const regex = new RegExp(`${escapedMention}\\b`);
+		return regex.test(text);
+	}
+
 	const debouncedCheckVocabulary = debounce(async () => {
 		const userIQ = $USER_DATA?.iq ?? 100;
 		if (messageInput) {
-			const { isValid, limit } = checkVocabulary(messageInput, userIQ);
+			// const { isValid, limit } = checkVocabulary(messageInput, userIQ);
+			const { isValid, limit } = { isValid: true, limit: null };
 			if (!isValid) {
 				vocabularyError = `Word length exceeds limit (${limit}) for IQ ${userIQ}.`;
 			} else {
@@ -215,9 +227,13 @@
 	<ScrollArea class="flex-1">
 		<div class="flex flex-col p-4" bind:this={messagesContainer}>
 			<div bind:this={messagesDiv}>
-				{#each messages as message}
+				{#each messages as message (message.id)}
+					{@const isUserMentioned = checkUserMention(message.text, userMentionString)}
 					<div
-						class="animate-message-appear hover:bg-muted/50 group mb-2 flex max-w-full items-start gap-3 rounded-lg p-2 transition-colors"
+						class={cn(
+							'animate-message-appear group mb-2 flex max-w-full items-start gap-3 rounded-lg p-2 transition-colors',
+							isUserMentioned ? 'bg-yellow-500/30 hover:bg-yellow-600/30' : 'hover:bg-muted/50'
+						)}
 					>
 						<div
 							class={cn(
