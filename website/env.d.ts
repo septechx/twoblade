@@ -1,4 +1,4 @@
-declare module '$env/static/public' {
+declare module "$env/static/public" {
   export const PUBLIC_DOMAIN: string;
   export const PUBLIC_WEBSOCKET_URL: string;
 }
