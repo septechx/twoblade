@@ -9,6 +9,10 @@ import { createHash } from 'crypto'
 const SHARP_PORT = +process.env.SHARP_PORT || 5000
 const HTTP_PORT = +process.env.HTTP_PORT || SHARP_PORT + 1
 const DOMAIN = process.env.DOMAIN_NAME || 'localhost'
+
+const USERNAME_REGEX = /^[a-zA-Z0-9_\-!$%&'*/?=^@.]+$/;
+const MAX_USERNAME_LENGTH = 20;
+
 const sql = postgres(process.env.DATABASE_URL)
 
 setInterval(async () => {
@@ -117,6 +121,16 @@ const sendError = (s, e) => {
     s.end()
 }
 
+function isValidSharpUsername(username) {
+    if (!username || username.length === 0 || username.length > MAX_USERNAME_LENGTH) {
+        return false;
+    }
+    if (!USERNAME_REGEX.test(username)) {
+        return false;
+    }
+    return true;
+}
+
 async function handleSharpMessage(socket, raw, state) {
     const MAX_MESSAGE_SIZE = 1 * 1024 * 1024;
     if (raw.length > MAX_MESSAGE_SIZE) {
@@ -139,6 +153,10 @@ async function handleSharpMessage(socket, raw, state) {
 
                 try {
                     const parsedFrom = parseSharpAddress(cmd.server_id);
+                    if (!isValidSharpUsername(parsedFrom.username)) {
+                        sendError(socket, `Invalid username format in server_id.`);
+                        return;
+                    }
                     await verifySharpDomain(parsedFrom.domain, socket.remoteAddress);
                     state.from = cmd.server_id;
                     state.step = 'MAIL_TO';
@@ -154,7 +172,19 @@ async function handleSharpMessage(socket, raw, state) {
                     return
                 }
                 state.to = cmd.address
-                const to = parseSharpAddress(state.to)
+                let to;
+                try {
+                    to = parseSharpAddress(state.to);
+                } catch (e) {
+                    sendError(socket, `Invalid recipient address format: ${e.message}`);
+                    return;
+                }
+
+                if (!isValidSharpUsername(to.username)) {
+                    sendError(socket, `Invalid username format in recipient address.`);
+                    return;
+                }
+
                 const addr = to.port
                     ? `${to.domain}:${to.port}`
                     : to.domain
