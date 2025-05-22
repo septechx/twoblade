@@ -4,23 +4,6 @@ import postgres from 'postgres';
 import Redis from 'ioredis';
 import { checkHardcore } from './moderation.js';
 
-// -- Begin Temp Debug --
-import http from 'http';
-const server = http.createServer();
-server.on('request', (req, res) => {
-  console.log('Incoming URL:', req.url);
-});
-const io = new Server(server, {
-  cors: {
-    origin: [`https://${process.env.PUBLIC_DOMAIN}`, "http://localhost:5173"],
-    credentials: true
-  },
-  transports: ['websocket']
-});
-server.listen(Number(8080));
-// -- End Temp Debug --
-
-/*
 const REDIS_URL = process.env.REDIS_URL;
 if (!REDIS_URL) {
   console.error("REDIS_URL is not defined in environment variables.");
@@ -362,4 +345,3 @@ io.on('connection', (socket) => {
 
 console.log(`WebSocket server starting on port ${PORT}...`);
 io.listen(Number(PORT));
-*/
