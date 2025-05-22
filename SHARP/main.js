@@ -531,7 +531,7 @@ function parseHashcashDate(dateString) {
     const minute = parseInt(dateString.substring(8, 10), 10);
     const second = parseInt(dateString.substring(10, 12), 10);
 
-    return new Date(year, month, day, hour, minute, second);
+    return new Date(Date.UTC(year, month, day, hour, minute, second));
 }
 
 function hasLeadingZeroBits(hexHash, bits) {
