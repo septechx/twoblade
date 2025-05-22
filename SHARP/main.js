@@ -689,8 +689,6 @@ app.post('/send', validateAuthToken, async (req, res) => {
             }
         }
 
-        if (emailData.scheduled_at) status = 'scheduled';
-
         if (hashcash && spamScore < HASHCASH_THRESHOLDS.REJECT) {
             try {
                 const hashcashDate = parseHashcashDate(hashcash.split(':')[2]);

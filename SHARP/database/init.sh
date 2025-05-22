@@ -12,10 +12,13 @@ ROOT_DIR="$(dirname "$SHARP_DIR")"
 echo "What is your domain name? (e.g., twoblade.com)"
 read DOMAIN
 
-# Create .env file
-cat >"$SHARP_DIR/.env" <<EOF
+POSTGRES_PASSWORD="$(openssl rand -hex 32)"
+POSTGRES_USER="postgres"
+
+# Create SHARP .env file
+cat > ".env" << EOF
 DOMAIN_NAME=${DOMAIN}
-DATABASE_URL=postgres://postgres:REPLACE_ME@localhost:5432/postgres
+DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/postgres
 SHARP_PORT=5000
 HTTP_PORT=5001
 
@@ -26,6 +29,11 @@ PRIVATE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 # Used for authentication, must match ../website/.env
 JWT_SECRET=REPLACE_ME_WITH_RANDOM_STRING
 EOF
+
+# Generate Docker Compose .env file from SHARP .env
+echo "# Docker Compose .env file" > "../.env"
+echo "# This file is used to configure the Docker Compose services." >> "../.env"
+grep -E "POSTGRES_USER|POSTGRES_PASSWORD" ".env" >> "../.env"
 
 echo "Created .env"
 echo "NOTE: Replace JWT_SECRET with a secure value (use 'openssl rand -hex 64'). IT MUST MATCH ../website/.env"

@@ -164,7 +164,6 @@ const HASHCASH_THRESHOLDS = {
     *   `GOOD` (e.g., 18 bits): The email has sufficient proof-of-work and is processed normally (status: 'pending' or 'scheduled').
     *   `WEAK` (e.g., 10 bits): The email has some proof-of-work but less than `GOOD`. It's accepted but marked as 'spam'.
     *   `TRIVIAL` (e.g., 5 bits): The email has minimal proof-of-work. It's accepted but marked as 'spam'. If the proof-of-work is below `TRIVIAL`, the `/api/send` endpoint will reject the request with a 429 status, asking for at least `TRIVIAL` bits.
-    *   The SHARP TCP server itself does not directly validate Hashcash upon connection; this is handled by the HTTP `/api/send` endpoint before an email is queued for local or remote delivery.
 
 Additionally, `main.js` includes IQ-based vocabulary checks:
 ```javascript
