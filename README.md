@@ -1,3 +1,4 @@
+## This is what I use to run twoblade on coolify at tb.siesque.com
 <img style="width: 128px; height: 128px" src="website/static/logo.svg" /><h1 style="font-size: 48px"><a href="https://twoblade.com">Twoblade.com</a> - an email protocol & client</h1>
 [Privacy Policy](https://twoblade.com/legal/privacy) | [Terms of Service](https://twoblade.com/legal/terms) | [License](LICENSE) | [YouTube video](https://youtu.be/nALc9GwZdFc)
 
