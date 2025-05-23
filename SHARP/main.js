@@ -568,7 +568,7 @@ async function calculateSpamScore(header, resource) {
             return HASHCASH_THRESHOLDS.REJECT;
         }
 
-        if (now - headerDate > 3600000) {
+        if (now - headerDate > 24 * 60 * 60 * 1000) {
             return HASHCASH_THRESHOLDS.WEAK + 1;
         }
 
