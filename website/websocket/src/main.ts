@@ -36,8 +36,8 @@ function checkVocabulary(text: string, iq: number): { isValid: boolean; limit: n
 }
 
 const RATE_LIMIT = {
-  messages: 3,
-  window: 2000
+    messages: 4,
+    window: 2000
 };
 
 const SIMILARITY_THRESHOLD = 0.8;
@@ -168,6 +168,25 @@ io.use(async (socket, next) => {
 
 let connectedUsers = new Set();
 
+const ipTimestampsMap = new Map<string, number[]>();
+const ipRecentMessagesMap = new Map<string, string[]>();
+
+function getClientIp(socket: any): string {
+    const headers = socket.handshake.headers;
+    if (headers['cf-connecting-ip']) {
+        return headers['cf-connecting-ip'];
+    }
+    const xff = headers['x-forwarded-for'];
+    if (xff) {
+        if (Array.isArray(xff)) {
+            return xff[0].split(',')[0].trim();
+        } else {
+            return xff.split(',')[0].trim();
+        }
+    }
+    return socket.handshake.address;
+}
+
 io.on('connection', (socket) => {
   const user = socket.data.user as User;
   connectedUsers.add(user.id);
@@ -206,49 +225,31 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const redisKeyUserTimestamps = `${REDIS_USER_TIMESTAMPS_PREFIX}${user.id}`;
-    const now = Date.now();
-    const windowStart = now - RATE_LIMIT.window;
+        const ip = getClientIp(socket);
+        const now = Date.now();
+        const windowStart = now - RATE_LIMIT.window;
+        let timestamps = ipTimestampsMap.get(ip) || [];
+        timestamps = timestamps.filter(ts => ts > windowStart);
+        ipTimestampsMap.set(ip, timestamps);
+        const countInWindow = timestamps.length;
+        if (countInWindow >= RATE_LIMIT.messages) {
+            socket.emit('error', {
+                message: `You're sending messages too quickly. Please wait ${RATE_LIMIT.window / 1000} seconds.`
+            });
+            return;
+        }
+        timestamps.push(now);
+        ipTimestampsMap.set(ip, timestamps);
 
-    await redis.zremrangebyscore(
-      redisKeyUserTimestamps,
-      '-inf',
-      `(${windowStart}`
-    );
-    const countInWindow = await redis.zcard(redisKeyUserTimestamps);
-
-    await redis.expire(
-      redisKeyUserTimestamps,
-      REDIS_DEFAULT_TTL_SECONDS.rateLimit
-    );
-
-    if (countInWindow >= RATE_LIMIT.messages) {
-      socket.emit('error', {
-        message: `You're sending messages too quickly. Please wait ${RATE_LIMIT.window / 1000} seconds.`
-      });
-      return;
-    }
-
-    await redis.zadd(
-      redisKeyUserTimestamps,
-      now.toString(),
-      now.toString()
-    );
-
-    const redisKeyUserRecentMessages = `${REDIS_USER_RECENT_MSGS_PREFIX}${user.id}`;
-    // const recentMessagesFromRedis = await redis.lrange(
-    //     redisKeyUserRecentMessages,
-    //     0,
-    //     -1
-    // );
-    // for (const prevMessage of recentMessagesFromRedis) {
-    //     if (similarity(text, prevMessage) > SIMILARITY_THRESHOLD) {
-    //         socket.emit('error', {
-    //             message: 'Your message is too similar to a recent message you sent.'
-    //         });
-    //         return;
-    //     }
-    // }
+        // let recentMessages = ipRecentMessagesMap.get(ip) || [];
+        // for (const prevMessage of recentMessages) {
+        //     if (similarity(text, prevMessage) > SIMILARITY_THRESHOLD) {
+        //         socket.emit('error', {
+        //             message: 'Your message is too similar to a recent message you sent.'
+        //         });
+        //         return;
+        //     }
+        // }
 
     const { isValid, limit } = checkVocabulary(text, user.iq);
     if (!isValid) {
@@ -258,18 +259,12 @@ io.on('connection', (socket) => {
       return;
     }
 
-    await redis.rpush(redisKeyUserRecentMessages, text);
-    await redis.ltrim(
-      redisKeyUserRecentMessages,
-      -RECENT_MESSAGES_TO_KEEP,
-      -1
-    );
-    await redis.expire(
-      redisKeyUserRecentMessages,
-      REDIS_DEFAULT_TTL_SECONDS.recentMessages
-    );
-
-
+        let recentMessages = ipRecentMessagesMap.get(ip) || [];
+        recentMessages.push(text);
+        if (recentMessages.length > RECENT_MESSAGES_TO_KEEP) {
+            recentMessages = recentMessages.slice(-RECENT_MESSAGES_TO_KEEP);
+        }
+        ipRecentMessagesMap.set(ip, recentMessages);
 
     const message = {
       id: crypto.randomUUID(),
